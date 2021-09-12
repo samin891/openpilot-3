@@ -59,7 +59,7 @@ def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
 
 
 class LongControl():
-  def __init__(self, CP, compute_gb, candidate):
+  def __init__(self, CP, compute_gb):
     self.long_control_state = LongCtrlState.off  # initialized to off
 
     self.pid = LongPIDController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
@@ -72,7 +72,6 @@ class LongControl():
     self.v_pid = 0.0
     self.last_output_gb = 0.0
 
-    self.candidate = candidate
     self.long_log = Params().get_bool("LongLogDisplay")
 
     self.vRel_prev = 0
