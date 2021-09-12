@@ -1,5 +1,6 @@
 from cereal import car, log
 from common.numpy_fast import clip, interp
+from common.realtime import DT_CTRL
 from selfdrive.controls.lib.pid import LongPIDController
 from selfdrive.controls.lib.drive_helpers import CONTROL_N
 from selfdrive.modeld.constants import T_IDXS
