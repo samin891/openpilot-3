@@ -8,6 +8,7 @@ from selfdrive.config import Conversions as CV
 from common.params import Params
 
 LongCtrlState = car.CarControl.Actuators.LongControlState
+LongitudinalPlanSource = log.LongitudinalPlan.LongitudinalPlanSource
 
 import common.log as trace1
 
@@ -68,6 +69,8 @@ class LongControl():
     self.last_output_accel = 0.0
 
     self.long_log = True
+    self.long_stat = 0
+    self.long_plan_source = 0
 
     self.vRel_prev = 0
     self.decel_damping = 1.0
@@ -179,8 +182,33 @@ class LongControl():
     self.last_output_accel = output_accel
     final_accel = clip(output_accel, accel_limits[0], accel_limits[1])
 
+
+    if self.long_control_state == LongCtrlState.stopping:
+      self.long_stat = 0
+    elif self.long_control_state == LongCtrlState.starting:
+      self.long_stat = 1
+    elif self.long_control_state == LongCtrlState.pid:
+      self.long_stat = 2
+    elif self.long_control_state == LongCtrlState.off:
+      self.long_stat = 3
+    else:
+      self.long_stat = 4
+
+    if long_plan.longitudinalPlanSource == LongitudinalPlanSource.cruise:
+      self.long_plan_source = 0
+    elif long_plan.longitudinalPlanSource == LongitudinalPlanSource.lead0:
+      self.long_plan_source = 1
+    elif long_plan.longitudinalPlanSource == LongitudinalPlanSource.lead1:
+      self.long_plan_source = 2
+    elif long_plan.longitudinalPlanSource == LongitudinalPlanSource.lead2:
+      self.long_plan_source = 3
+    elif long_plan.longitudinalPlanSource == LongitudinalPlanSource.e2e:
+      self.long_plan_source = 4
+    else:
+      self.long_plan_source = 5
+
     if CP.sccBus != 0 and self.long_log:
-      str_log3 = 'BS={:1.0f}/{:1.0f}  LS={}  LP={}  FA/OA={:01.2f}/{:01.2f}  GS={}  RD={:04.1f}'.format(CP.mdpsBus, CP.sccBus, self.long_control_state.name, long_plan.longitudinalPlanSource.name, final_accel, output_accel, int(CS.gasPressed), CS.radarDistance)
+      str_log3 = 'BS={:1.0f}/{:1.0f}  LS={}  LP={}  FA/OA={:01.2f}/{:01.2f}  GS={}  RD={:04.1f}'.format(CP.mdpsBus, CP.sccBus, self.long_stat, self.long_plan_source, final_accel, output_accel, int(CS.gasPressed), CS.radarDistance)
       trace1.printf2('{}'.format(str_log3))
 
     return final_accel
