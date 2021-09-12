@@ -9,9 +9,6 @@ from common.params import Params
 LongCtrlState = car.CarControl.Actuators.LongControlState
 
 import common.log as trace1
-import common.CTime1000 as tm
-
-LongitudinalPlanSource = log.LongitudinalPlan.LongitudinalPlanSource
 
 STOPPING_TARGET_SPEED_OFFSET = 0.01
 
