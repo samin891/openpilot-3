@@ -11,6 +11,10 @@ from opendbc.can.packer import CANPacker
 
 from selfdrive.car.hyundai.carstate import GearShifter
 from selfdrive.controls.lib.lateral_planner import LANE_CHANGE_SPEED_MIN
+
+# speed controller
+from selfdrive.car.hyundai.spdcontroller  import SpdController
+from selfdrive.car.hyundai.spdctrlLong  import SpdctrlLong
 from common.params import Params
 import common.log as trace1
 import common.CTime1000 as tm
