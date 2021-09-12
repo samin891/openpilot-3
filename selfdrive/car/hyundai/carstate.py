@@ -28,7 +28,6 @@ class CarState(CarStateBase):
     self.lkas_button_on = True
     self.cruise_main_button = 0
     self.mdps_error_cnt = 0
-    self.cruise_unavail_cnt = 0
 
     self.acc_active = False
     self.cruiseState_standstill = False
@@ -136,7 +135,7 @@ class CarState(CarStateBase):
     # TODO: Find brake pressure
     ret.brake = 0
     ret.brakePressed = cp.vl["TCS13"]["DriverBraking"] != 0
-    self.brakeUnavailable = cp.vl["TCS13"]["ACCEnable"] == 3
+
     if ret.brakePressed:
       self.brake_check = True
     if self.cruise_buttons == 4:
@@ -278,10 +277,8 @@ class CarState(CarStateBase):
 
     ret.brakeHold = cp.vl["TCS15"]["AVH_LAMP"] == 2 # 0 OFF, 1 ERROR, 2 ACTIVE, 3 READY
     self.brakeHold = ret.brakeHold
-    self.brake_error = cp.vl["TCS13"]["ACCEnable"] != 0 # 0 ACC CONTROL ENABLED, 1-3 ACC CONTROL DISABLED
+    self.brake_error = cp.vl["TCS13"]["ACCEnable"] == 3 # 0 ACC CONTROL ENABLED, 1-3 ACC CONTROL DISABLED
     self.steer_state = cp_mdps.vl["MDPS12"]["CF_Mdps_ToiActive"] #0 NOT ACTIVE, 1 ACTIVE
-    self.cruise_unavail_cnt += 1 if cp.vl["TCS13"]["CF_VSM_Avail"] != 1 and cp.vl["TCS13"]["ACCEnable"] != 0 else -self.cruise_unavail_cnt
-    self.cruise_unavail = self.cruise_unavail_cnt > 100
     self.lead_distance = cp_scc.vl["SCC11"]["ACC_ObjDist"] if not self.no_radar else 0
 
     ret.radarDistance = cp_scc.vl["SCC11"]["ACC_ObjDist"] if not self.no_radar else 0
