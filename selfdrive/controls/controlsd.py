@@ -386,10 +386,7 @@ class Controls:
     if not self.CP.pcmCruise:
       self.v_cruise_kph = update_v_cruise(self.v_cruise_kph, CS.buttonEvents, self.enabled)
     elif self.CP.pcmCruise and CS.cruiseState.enabled:
-      if CS.cruiseState.modeSel != 0 and self.CP.vCruisekph > t_speed:
-        self.v_cruise_kph = self.CP.vCruisekph
-        self.v_cruise_kph_last = self.v_cruise_kph
-      elif CS.cruiseButtons == Buttons.RES_ACCEL and CS.cruiseState.modeSel != 0 and CS.vSetDis < (self.v_cruise_kph_last - 1):
+      if CS.cruiseButtons == Buttons.RES_ACCEL and CS.cruiseState.modeSel != 0 and CS.vSetDis < (self.v_cruise_kph_last - 1):
         self.v_cruise_kph = self.v_cruise_kph_last
         if int(CS.vSetDis)-1 > self.v_cruise_kph:
           self.v_cruise_kph = int(CS.vSetDis)

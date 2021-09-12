@@ -274,7 +274,6 @@ class CarInterface(CarInterfaceBase):
     ret.enableBsm = 0x58b in fingerprint[0]
 
     ret.standStill = False
-    ret.vCruisekph = 0
 
     # ignore CAN2 address if L-CAN on the same BUS
     ret.mdpsBus = 1 if 593 in fingerprint[1] and 1296 not in fingerprint[1] else 0
