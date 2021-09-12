@@ -364,21 +364,13 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.emgButtonManual)
     #if self.CC.driver_steering_torque_above_timer:
     #  events.add(EventName.driverSteering)
-    if self.CC.need_brake and not self.CC.longcontrol:
-      events.add(EventName.needBrake)
-    if self.CC.cruise_gap_adjusting:
-      events.add(EventName.gapAdjusting)
-    if (self.CS.on_speed_control and not self.CC.map_enabled) or (self.CC.on_speed_control and self.CC.map_enabled):
+    if self.CS.on_speed_control:
       events.add(EventName.camSpeedDown)
     if self.CS.cruiseState_standstill or self.CC.standstill_status == 1:
       #events.add(EventName.standStill)
       self.CP.standStill = True
     else:
       self.CP.standStill = False
-    if self.CC.v_cruise_kph_auto_res > 30:
-      self.CP.vCruisekph = self.CC.v_cruise_kph_auto_res
-    else:
-      self.CP.vCruisekph = 0
 
     if self.CC.mode_change_timer and self.CS.out.cruiseState.modeSel == 0:
       events.add(EventName.modeChangeOpenpilot)
