@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 from cereal import car
+from panda import Panda
+from common.params import Params
 from selfdrive.config import Conversions as CV
 from selfdrive.car.hyundai.values import CAR, EV_CAR, HYBRID_CAR, Buttons, CarControllerParams
 from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness, gen_empty_fingerprint
 from selfdrive.car.interfaces import CarInterfaceBase
+from selfdrive.car.disable_ecu import disable_ecu
 
 ButtonType = car.CarState.ButtonEvent.Type
 EventName = car.CarEvent.EventName
@@ -19,8 +22,8 @@ class CarInterface(CarInterfaceBase):
     self.mad_mode_enabled = True
 
   @staticmethod
-  def compute_gb(accel, speed):
-    return float(accel) / CarControllerParams.MAX_BRAKE
+  def get_pid_accel_limits(CP, current_speed, cruise_speed):
+    return CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX
 
   @staticmethod
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), car_fw=[]):  # pylint: disable=dangerous-default-value
@@ -29,16 +32,30 @@ class CarInterface(CarInterfaceBase):
     ret.carName = "hyundai"
     ret.safetyModel = car.CarParams.SafetyModel.hyundai
     ret.radarOffCan = False
+    ret.standStill = False
+
+    ret.mdpsBus = 1 if 593 in fingerprint[1] and 1296 not in fingerprint[1] else 0
+    ret.sasBus = 1 if 688 in fingerprint[1] and 1296 not in fingerprint[1] else 0
+    ret.sccBus = 0 if 1056 in fingerprint[0] else 1 if 1056 in fingerprint[1] and 1296 not in fingerprint[1] \
+                                                                     else 2 if 1056 in fingerprint[2] else -1
+    ret.fcaBus = 0 if 909 in fingerprint[0] else 2 if 909 in fingerprint[2] else -1
+    ret.bsmAvailable = True if 1419 in fingerprint[0] else False
+    ret.lfaAvailable = True if 1157 in fingerprint[2] else False
+    ret.lvrAvailable = True if 871 in fingerprint[0] else False
+    ret.evgearAvailable = True if 882 in fingerprint[0] else False
+    ret.emsAvailable = True if 608 and 809 in fingerprint[0] else False
+
+    ret.openpilotLongitudinalControl = Params().get_bool("DisableRadar") or ret.sccBus == 2
+    ret.safetyParam = 0
 
     # Most Hyundai car ports are community features for now
     ret.communityFeature = False
+    ret.pcmCruise = not ret.radarOffCan
 
     ret.steerActuatorDelay = 0.25  # Default delay
     ret.steerRateCost = 0.35
     ret.steerLimitTimer = 0.8
     tire_stiffness_factor = 1.
-
-    ret.startAccel = 0.0
 
     ret.stoppingControl = True
 
@@ -53,13 +70,15 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalTuning.kdV = [0.7, 0.65, 0.5, 0.4, 0.3, 0.2]
     ret.longitudinalTuning.kfBP = [0., 4., 9., 17., 23., 31.]
     ret.longitudinalTuning.kfV = [1., 1., 1., 1., 1., 1.]
-    
-    ret.gasMaxBP = [0., 4., 9., 17., 23., 31.]    # m/s
-    ret.gasMaxV = [1.5, 1.35, 0.8, 0.5, 0.4, 0.3]    # max gas allowed
-    ret.brakeMaxBP = [0., 8.]  # m/s
-    ret.brakeMaxV = [0.7, 3.5]   # max brake allowed
 
-    #ret.longitudinalActuatorDelay = 1.0 # s
+    ret.vEgoStopping = 0.5
+    ret.vEgoStarting = 0.5
+    ret.stoppingDecelRate = 0.2
+    ret.startingAccelRate = 0.8
+    ret.startAccel = -0.2
+    ret.stopAccel = -0.5
+
+    ret.longitudinalActuatorDelay = 1.0 # s
 
     if candidate == CAR.SANTA_FE:
       ret.lateralTuning.pid.kf = 0.00005
@@ -257,7 +276,7 @@ class CarInterface(CarInterfaceBase):
 
     # these cars require a special panda safety mode due to missing counters and checksums in the messages
     if candidate in [CAR.HYUNDAI_GENESIS, CAR.IONIQ_EV_2020, CAR.IONIQ_EV_LTD, CAR.IONIQ_PHEV, CAR.IONIQ, CAR.KONA_EV, CAR.KIA_SORENTO,
-                     CAR.SONATA_LF, CAR.KIA_NIRO_EV, CAR.KIA_OPTIMA, CAR.VELOSTER, CAR.KIA_STINGER, CAR.KIA_SELTOS,
+                     CAR.SONATA_LF, CAR.KIA_NIRO_EV, CAR.KIA_OPTIMA, CAR.VELOSTER, CAR.KIA_STINGER,
                      CAR.GENESIS_G70, CAR.GENESIS_G80, CAR.KIA_CEED, CAR.ELANTRA]:
       ret.safetyModel = car.CarParams.SafetyModel.hyundaiLegacy
 
@@ -280,29 +299,18 @@ class CarInterface(CarInterfaceBase):
 
     ret.enableBsm = 0x58b in fingerprint[0]
 
-    ret.standStill = False
+    #if ret.openpilotLongitudinalControl:
+    #  ret.safetyParam |= Panda.FLAG_HYUNDAI_LONG
 
-    # ignore CAN2 address if L-CAN on the same BUS
-    ret.mdpsBus = 1 if 593 in fingerprint[1] and 1296 not in fingerprint[1] else 0
-    ret.sasBus = 1 if 688 in fingerprint[1] and 1296 not in fingerprint[1] else 0
-    ret.sccBus = 0 if 1056 in fingerprint[0] else 1 if 1056 in fingerprint[1] and 1296 not in fingerprint[1] \
-                                                                     else 2 if 1056 in fingerprint[2] else -1
-    ret.fcaBus = 0 if 909 in fingerprint[0] else 2 if 909 in fingerprint[2] else -1
-    ret.bsmAvailable = True if 1419 in fingerprint[0] else False
-    ret.lfaAvailable = True if 1157 in fingerprint[2] else False
-    ret.lvrAvailable = True if 871 in fingerprint[0] else False
-    ret.evgearAvailable = True if 882 in fingerprint[0] else False
-    ret.emsAvailable = True if 608 and 809 in fingerprint[0] else False
-
-    ret.openpilotLongitudinalControl = ret.sccBus == 2
-    
-    # pcmCruise is true
-    ret.pcmCruise = not ret.radarOffCan
-    
     # set safety_hyundai_community only for non-SCC, MDPS harrness or SCC harrness cars or cars that have unknown issue
-    if ret.radarOffCan or ret.mdpsBus == 1 or ret.openpilotLongitudinalControl or ret.sccBus == 1:
+    if ret.radarOffCan or ret.mdpsBus == 1 or ret.openpilotLongitudinalControl:
       ret.safetyModel = car.CarParams.SafetyModel.hyundaiCommunity
     return ret
+
+  #@staticmethod
+  #def init(CP, logcan, sendcan):
+  #  if CP.openpilotLongitudinalControl:
+  #    disable_ecu(logcan, sendcan, addr=0x7d0, com_cont_req=b'\x28\x83\x01')
 
   def update(self, c, can_strings):
     self.cp.update_strings(can_strings)
@@ -311,9 +319,11 @@ class CarInterface(CarInterfaceBase):
 
     ret = self.CS.update(self.cp, self.cp2, self.cp_cam)
     ret.canValid = self.cp.can_valid and self.cp2.can_valid and self.cp_cam.can_valid
+    ret.steeringRateLimited = self.CC.steer_rate_limited if self.CC is not None else False
+
     if not self.cp.can_valid or not self.cp2.can_valid or not self.cp_cam.can_valid:
       print('cp={}  cp2={}  cp_cam={}'.format(bool(self.cp.can_valid), bool(self.cp2.can_valid), bool(self.cp_cam.can_valid)))
-    ret.steeringRateLimited = self.CC.steer_rate_limited if self.CC is not None else False
+
 
     if self.CP.pcmCruise and not self.CC.scc_live:
       self.CP.pcmCruise = False

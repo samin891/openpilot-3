@@ -1,4 +1,6 @@
 import numpy as np
+from numbers import Number
+
 from common.numpy_fast import clip, interp
 from selfdrive.config import Conversions as CV
 
@@ -13,11 +15,15 @@ def apply_deadzone(error, deadzone):
   return error
 
 class LatPIDController():
-  def __init__(self, k_p, k_i, k_d, k_f=1., pos_limit=None, neg_limit=None, rate=100, sat_limit=0.8, convert=None):
+  def __init__(self, k_p, k_i, k_d, k_f=1., pos_limit=None, neg_limit=None, rate=100, sat_limit=0.8):
     self._k_p = k_p  # proportional gain
     self._k_i = k_i  # integral gain
     self._k_d = k_d  # derivative gain
     self.k_f = k_f  # feedforward gain
+    if isinstance(self._k_p, Number):
+      self._k_p = [[0], [self._k_p]]
+    if isinstance(self._k_i, Number):
+      self._k_i = [[0], [self._k_i]]
 
     self.pos_limit = pos_limit
     self.neg_limit = neg_limit
@@ -26,7 +32,6 @@ class LatPIDController():
     self.i_unwind_rate = 0.3 / rate
     self.i_rate = 1.0 / rate
     self.sat_limit = sat_limit
-    self.convert = convert
 
     self.reset()
 
@@ -81,9 +86,6 @@ class LatPIDController():
       i = self.i + error * self.k_i * self.i_rate
       control = self.p + self.f + i + d
 
-      if self.convert is not None:
-        control = self.convert(control, speed=self.speed)
-
       # Update when changing i will move the control away from the limits
       # or when i will move towards the sign of the error
       if ((error >= 0 and (control <= self.pos_limit or i < 0.0)) or
@@ -92,8 +94,6 @@ class LatPIDController():
         self.i = i
 
     control = self.p + self.f + self.i + d
-    if self.convert is not None:
-      control = self.convert(control, speed=self.speed)
 
     self.saturated = self._check_saturation(control, check_saturation, error)
 
@@ -106,7 +106,7 @@ class LatPIDController():
 
 
 class LongPIDController:
-  def __init__(self, k_p, k_i, k_d, k_f, pos_limit=None, neg_limit=None, rate=100, sat_limit=0.8, convert=None):
+  def __init__(self, k_p, k_i, k_d, k_f, pos_limit=None, neg_limit=None, rate=100, sat_limit=0.8):
     self._k_p = k_p  # proportional gain
     self._k_i = k_i  # integral gain
     self._k_d = k_d  # derivative gain
@@ -121,7 +121,6 @@ class LongPIDController:
     self.i_unwind_rate = 0.3 / rate
     self.rate = 1.0 / rate
     self.sat_limit = sat_limit
-    self.convert = convert
 
     self.reset()
 
@@ -177,9 +176,6 @@ class LongPIDController:
       i = self.id + error * self.k_i * self.rate
       control = self.p + self.f + i
 
-      if self.convert is not None:
-        control = self.convert(control, speed=self.speed)
-
       # Update when changing i will move the control away from the limits
       # or when i will move towards the sign of the error
       if ((error >= 0 and (control <= self.pos_limit or i < 0.0)) or \
@@ -193,8 +189,6 @@ class LongPIDController:
         self.id += d
 
     control = self.p + self.f + self.id
-    if self.convert is not None:
-      control = self.convert(control, speed=self.speed)
 
     self.saturated = self._check_saturation(control, check_saturation, error)
 
