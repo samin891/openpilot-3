@@ -69,8 +69,8 @@ class LongControl():
     self.last_output_accel = 0.0
 
     self.long_log = True
-    self.long_stat = 0
-    self.long_plan_source = 0
+    self.long_stat = ""
+    self.long_plan_source = ""
 
     self.vRel_prev = 0
     self.decel_damping = 1.0
@@ -184,31 +184,31 @@ class LongControl():
 
 
     if self.long_control_state == LongCtrlState.stopping:
-      self.long_stat = 0
+      self.long_stat = "STP"
     elif self.long_control_state == LongCtrlState.starting:
-      self.long_stat = 1
+      self.long_stat = "STR"
     elif self.long_control_state == LongCtrlState.pid:
-      self.long_stat = 2
+      self.long_stat = "PID"
     elif self.long_control_state == LongCtrlState.off:
-      self.long_stat = 3
+      self.long_stat = "OFF"
     else:
-      self.long_stat = 4
+      self.long_stat = "---"
 
     if long_plan.longitudinalPlanSource == LongitudinalPlanSource.cruise:
-      self.long_plan_source = 0
+      self.long_plan_source = "cruise"
     elif long_plan.longitudinalPlanSource == LongitudinalPlanSource.lead0:
-      self.long_plan_source = 1
+      self.long_plan_source = "lead0"
     elif long_plan.longitudinalPlanSource == LongitudinalPlanSource.lead1:
-      self.long_plan_source = 2
+      self.long_plan_source = "lead1"
     elif long_plan.longitudinalPlanSource == LongitudinalPlanSource.lead2:
-      self.long_plan_source = 3
+      self.long_plan_source = "lead2"
     elif long_plan.longitudinalPlanSource == LongitudinalPlanSource.e2e:
-      self.long_plan_source = 4
+      self.long_plan_source = "e2e"
     else:
-      self.long_plan_source = 5
+      self.long_plan_source = "---"
 
     if CP.sccBus != 0 and self.long_log:
-      str_log3 = 'BS={:1.0f}/{:1.0f}  LS={}  LP={}  FA/OA={:01.2f}/{:01.2f}  GS={}  RD={:04.1f}'.format(CP.mdpsBus, CP.sccBus, self.long_stat, self.long_plan_source, final_accel, output_accel, int(CS.gasPressed), CS.radarDistance)
+      str_log3 = 'BS={:1.0f}/{:1.0f}  LS={:s}  LP={:s}  FA/OA={:01.2f}/{:01.2f}  GS={}  RD={:04.1f}'.format(CP.mdpsBus, CP.sccBus, self.long_stat, self.long_plan_source, final_accel, output_accel, int(CS.gasPressed), CS.radarDistance)
       trace1.printf2('{}'.format(str_log3))
 
     return final_accel
