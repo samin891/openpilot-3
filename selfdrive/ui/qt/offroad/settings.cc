@@ -370,7 +370,6 @@ UserPanel::UserPanel(QWidget* parent) : QWidget(parent) {
   QVBoxLayout *layout = new QVBoxLayout(this);
 
   // OPKR
-  layout->addWidget(new LabelControl("UI설정", ""));
   const char* record_del = "rm -f /storage/emulated/0/videos/*";
   auto recorddelbtn = new ButtonControl("녹화파일 전부 삭제", "실행");
   QObject::connect(recorddelbtn, &ButtonControl::clicked, [=]() {
@@ -379,6 +378,7 @@ UserPanel::UserPanel(QWidget* parent) : QWidget(parent) {
     }
   });
   layout->addWidget(recorddelbtn);
+  layout->addWidget(horizontal_line());
   const char* realdata_del = "rm -rf /storage/emulated/0/realdata/*";
   auto realdatadelbtn = new ButtonControl("주행로그 전부 삭제", "실행");
   QObject::connect(realdatadelbtn, &ButtonControl::clicked, [=]() {
@@ -387,12 +387,13 @@ UserPanel::UserPanel(QWidget* parent) : QWidget(parent) {
     }
   });
   layout->addWidget(realdatadelbtn);
-
   layout->addWidget(horizontal_line());
-  layout->addWidget(new LabelControl("개발자", ""));
   layout->addWidget(new DebugUiOneToggle());
+  layout->addWidget(horizontal_line());
   layout->addWidget(new DebugUiTwoToggle());
+  layout->addWidget(horizontal_line());
   layout->addWidget(new PrebuiltToggle());
+  layout->addWidget(horizontal_line());
   const char* cal_ok = "cp -f /data/openpilot/selfdrive/assets/addon/param/CalibrationParams /data/params/d/";
   auto calokbtn = new ButtonControl("캘리브레이션 강제 활성화", "실행");
   QObject::connect(calokbtn, &ButtonControl::clicked, [=]() {
@@ -401,10 +402,9 @@ UserPanel::UserPanel(QWidget* parent) : QWidget(parent) {
     }
   });
   layout->addWidget(calokbtn);
-
   layout->addWidget(horizontal_line());
-
   layout->addWidget(new RadarLongHelperToggle());
+  layout->addWidget(horizontal_line());
   layout->addWidget(new StoppingDistAdjToggle());
 }
 
