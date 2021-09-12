@@ -180,7 +180,7 @@ class LongControl():
     final_accel = clip(output_accel, accel_limits[0], accel_limits[1])
 
     if CP.sccBus != 0 and self.long_log:
-      str_log3 = 'BS={:1.0f}/{:1.0f}  GS={:01.2f}/{:01.2f}  BK={:01.2f}/{:01.2f}  GB={:+04.2f}  GS={}  RD={:04.1f}  TG={:04.2f}/{:+04.2f}'.format(CP.mdpsBus, CP.sccBus, final_gas, gas_max, abs(final_brake), abs(brake_max), output_gb, int(CS.gasPressed), CS.radarDistance, v_target, a_target)
+      str_log3 = 'BS={:1.0f}/{:1.0f}  FA/OA={:01.2f}/{:01.2f}  GS={}  RD={:04.1f}'.format(CP.mdpsBus, CP.sccBus, final_accel, output_accel, int(CS.gasPressed), CS.radarDistance)
       trace1.printf2('{}'.format(str_log3))
 
     return final_accel
