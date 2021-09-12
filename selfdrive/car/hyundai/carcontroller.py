@@ -130,7 +130,7 @@ class CarController():
     self.auto_res_timer = 0
 
     if CP.lateralTuning.which() == 'pid':
-      self.str_log2 = 'T={:0.2f}/{:0.3f}/{:0.5f}'.format(CP.lateralTuning.pid.kpV[0], CP.lateralTuning.pid.kiV[0], CP.lateralTuning.pid.kf)
+      self.str_log2 = 'T={:0.2f}/{:0.3f}/{:0.2f}/{:0.5f}'.format(CP.lateralTuning.pid.kpV[1], CP.lateralTuning.pid.kiV[1], CP.lateralTuning.pid.kdV[0], CP.lateralTuning.pid.kf)
     elif CP.lateralTuning.which() == 'indi':
       self.str_log2 = 'T={:03.1f}/{:03.1f}/{:03.1f}/{:03.1f}'.format(CP.lateralTuning.indi.innerLoopGainV[0], CP.lateralTuning.indi.outerLoopGainV[0], \
        CP.lateralTuning.indi.timeConstantV[0], CP.lateralTuning.indi.actuatorEffectivenessV[0])

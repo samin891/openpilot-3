@@ -53,6 +53,11 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalTuning.kdV = [0.7, 0.65, 0.5, 0.4, 0.3, 0.2]
     ret.longitudinalTuning.kfBP = [0., 4., 9., 17., 23., 31.]
     ret.longitudinalTuning.kfV = [1., 1., 1., 1., 1., 1.]
+    
+    ret.gasMaxBP = [0., 4., 9., 17., 23., 31.]    # m/s
+    ret.gasMaxV = [1.5, 1.35, 0.8, 0.5, 0.4, 0.3]    # max gas allowed
+    ret.brakeMaxBP = [0., 8.]  # m/s
+    ret.brakeMaxV = [0.7, 3.5]   # max brake allowed
 
     #ret.longitudinalActuatorDelay = 1.0 # s
 
