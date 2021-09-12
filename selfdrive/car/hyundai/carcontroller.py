@@ -21,7 +21,6 @@ import common.CTime1000 as tm
 from random import randint
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
-LongCtrlState = car.CarControl.Actuators.LongControlState
 
 # Accel limits
 ACCEL_HYST_GAP = 0.02  # don't change accel command for small oscillations within this value
