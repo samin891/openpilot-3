@@ -104,6 +104,12 @@ class LateralPlanner():
 
 
   def update(self, sm, CP):
+    self.second += DT_MDL
+    if self.second > 1.0:
+      if Params().get_bool("OpkrLiveTunePanelEnable"):
+        self.steer_rate_cost = float(Decimal(Params().get("SteerRateCostAdj", encoding="utf8")) * Decimal('0.01'))
+      self.second = 0.0
+
     self.v_cruise_kph = sm['controlsState'].vCruise
     self.stand_still = sm['carState'].standStill
     try:

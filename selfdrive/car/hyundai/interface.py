@@ -8,6 +8,9 @@ from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness,
 from selfdrive.car.interfaces import CarInterfaceBase
 from selfdrive.car.disable_ecu import disable_ecu
 
+from common.params import Params
+from decimal import Decimal
+
 ButtonType = car.CarState.ButtonEvent.Type
 EventName = car.CarEvent.EventName
 
@@ -79,6 +82,21 @@ class CarInterface(CarInterfaceBase):
     ret.stopAccel = -0.5
 
     ret.longitudinalActuatorDelay = 1.0 # s
+
+
+    params = Params()
+    PidKp = float(Decimal(params.get("PidKp", encoding="utf8")) * Decimal('0.01'))
+    PidKi = float(Decimal(params.get("PidKi", encoding="utf8")) * Decimal('0.001'))
+    PidKd = float(Decimal(params.get("PidKd", encoding="utf8")) * Decimal('0.01'))
+    PidKf = float(Decimal(params.get("PidKf", encoding="utf8")) * Decimal('0.00001'))
+    InnerLoopGain = float(Decimal(params.get("InnerLoopGain", encoding="utf8")) * Decimal('0.1'))
+    OuterLoopGain = float(Decimal(params.get("OuterLoopGain", encoding="utf8")) * Decimal('0.1'))
+    TimeConstant = float(Decimal(params.get("TimeConstant", encoding="utf8")) * Decimal('0.1'))
+    ActuatorEffectiveness = float(Decimal(params.get("ActuatorEffectiveness", encoding="utf8")) * Decimal('0.1'))
+    Scale = float(Decimal(params.get("Scale", encoding="utf8")) * Decimal('1.0'))
+    LqrKi = float(Decimal(params.get("LqrKi", encoding="utf8")) * Decimal('0.001'))
+    DcGain = float(Decimal(params.get("DcGain", encoding="utf8")) * Decimal('0.00001'))
+
 
     if candidate == CAR.SANTA_FE:
       ret.lateralTuning.pid.kf = 0.00005
@@ -211,15 +229,22 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.indi.actuatorEffectivenessBP = [0.]
       ret.lateralTuning.indi.actuatorEffectivenessV = [1.8]
     elif candidate in [CAR.KIA_OPTIMA, CAR.KIA_OPTIMA_H]:
-      ret.lateralTuning.pid.kf = 0.00008
+      #ret.lateralTuning.pid.kf = 0.00008
       ret.wheelbase = 2.805
       ret.mass = 1600. + STD_CARGO_KG
       ret.steerRatio = 15.5
       tire_stiffness_factor = 1.0
-      ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0., 9.], [0., 9.]]
-      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.1, 0.25], [0.01, 0.05]]
+      ret.lateralTuning.pid.kf = PidKf
+      ret.lateralTuning.pid.kpBP = [0., 9.]
+      ret.lateralTuning.pid.kpV = [0.1, PidKp]
+      ret.lateralTuning.pid.kiBP = [0., 9.]
+      ret.lateralTuning.pid.kiV = [0.01, PidKi]
       ret.lateralTuning.pid.kdBP = [0.]
-      ret.lateralTuning.pid.kdV = [1.5]
+      ret.lateralTuning.pid.kdV = [PidKd]
+      #ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0., 9.], [0., 9.]]
+      #ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.1, 0.25], [0.01, 0.05]]
+      #ret.lateralTuning.pid.kdBP = [0.]
+      #ret.lateralTuning.pid.kdV = [1.5]
     elif candidate == CAR.KIA_STINGER:
       ret.lateralTuning.pid.kf = 0.00005
       ret.mass = 1825. + STD_CARGO_KG

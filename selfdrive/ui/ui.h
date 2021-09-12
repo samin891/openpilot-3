@@ -83,6 +83,11 @@ const Rect rec_btn = {1745, 905, 140, 140};
 const Rect laneless_btn = {1585, 905, 140, 140};
 const Rect monitoring_btn = {50, 830, 140, 140};
 const Rect stockui_btn = {15, 15, 184, 202};
+const Rect tuneui_btn = {1720, 15, 184, 202};
+const Rect livetunepanel_left_btn = {500, 750, 170, 160};
+const Rect livetunepanel_right_btn = {1250, 750, 170, 160};
+const Rect livetunepanel_left_above_btn = {500, 575, 170, 160};
+const Rect livetunepanel_right_above_btn = {1250, 575, 170, 160};
 
 const int UI_FREQ = 20;   // Hz
 
@@ -151,6 +156,7 @@ typedef struct UIScene {
   float tpmsPressureFr;
   float tpmsPressureRl;
   float tpmsPressureRr;
+  int lateralControlMethod;
   float radarDistance;
   bool standStill;
   float limitSpeedCamera;
@@ -180,6 +186,16 @@ typedef struct UIScene {
   bool nOpkrBlindSpotDetect = true;
   bool is_speed_over_limit = false;
   bool controlAllowed;
+
+  // live tune
+  bool opkr_livetune_ui;
+  int cameraOffset, pathOffset, osteerRateCost;
+  int pidKp, pidKi, pidKd, pidKf;
+  int indiInnerLoopGain, indiOuterLoopGain, indiTimeConstant, indiActuatorEffectiveness;
+  int lqrScale, lqrKi, lqrDcGain;
+  bool live_tune_panel_enable;
+  int live_tune_panel_list = 0;
+  int list_count = 3;
 
   cereal::DeviceState::Reader deviceState;
   cereal::RadarState::LeadData::Reader lead_data[2];

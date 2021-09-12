@@ -116,7 +116,14 @@ static void update_state(UIState *s) {
 
   if (sm.updated("controlsState")) {
     scene.controls_state = sm["controlsState"].getControlsState();
-    scene.output_scale = scene.controls_state.getLateralControlState().getPidState().getOutput();
+    scene.lateralControlMethod = scene.controls_state.getLateralControlMethod();
+    if (scene.lateralControlMethod == 0) {
+      scene.output_scale = scene.controls_state.getLateralControlState().getPidState().getOutput();
+    } else if (scene.lateralControlMethod == 1) {
+      scene.output_scale = scene.controls_state.getLateralControlState().getIndiState().getOutput();
+    } else if (scene.lateralControlMethod == 2) {
+      scene.output_scale = scene.controls_state.getLateralControlState().getLqrState().getOutput();
+    }
 
     scene.alertTextMsg1 = scene.controls_state.getAlertTextMsg1(); //debug1
     scene.alertTextMsg2 = scene.controls_state.getAlertTextMsg2(); //debug2
@@ -292,6 +299,23 @@ static void update_params(UIState *s) {
       scene.nTime = -1;
     }
     scene.comma_stock_ui = params.getBool("CommaStockUI");
+    
+    //live tune param
+    scene.cameraOffset = std::stoi(params.get("CameraOffsetAdj"));
+    scene.pathOffset = std::stoi(params.get("PathOffsetAdj"));
+    scene.osteerRateCost = std::stoi(params.get("SteerRateCostAdj"));
+    scene.pidKp = std::stoi(params.get("PidKp"));
+    scene.pidKi = std::stoi(params.get("PidKi"));
+    scene.pidKd = std::stoi(params.get("PidKd"));
+    scene.pidKf = std::stoi(params.get("PidKf"));
+    scene.indiInnerLoopGain = std::stoi(params.get("InnerLoopGain"));
+    scene.indiOuterLoopGain = std::stoi(params.get("OuterLoopGain"));
+    scene.indiTimeConstant = std::stoi(params.get("TimeConstant"));
+    scene.indiActuatorEffectiveness = std::stoi(params.get("ActuatorEffectiveness"));
+    scene.lqrScale = std::stoi(params.get("Scale"));
+    scene.lqrKi = std::stoi(params.get("LqrKi"));
+    scene.lqrDcGain = std::stoi(params.get("DcGain"));
+    scene.live_tune_panel_enable = params.getBool("OpkrLiveTunePanelEnable");
     scene.read_params_once = true;
   }
 }

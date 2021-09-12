@@ -3,6 +3,8 @@ import math
 from selfdrive.controls.lib.pid import LatPIDController
 from selfdrive.controls.lib.drive_helpers import get_steer_max
 from cereal import log
+from common.params import Params
+from decimal import Decimal
 
 
 class LatControlPID():
@@ -13,10 +15,38 @@ class LatControlPID():
                                 k_f=CP.lateralTuning.pid.kf, pos_limit=1.0, neg_limit=-1.0,
                                 sat_limit=CP.steerLimitTimer)
 
+    self.mpc_frame = 0
+    self.params = Params()
+
+    self.live_tune_enabled = False
+
+    self.lp_timer = 0
+
   def reset(self):
     self.pid.reset()
 
+  # live tune referred to kegman's 
+  def live_tune(self, CP):
+    self.mpc_frame += 1
+    if self.mpc_frame % 300 == 0:
+      self.steerKpV = float(Decimal(self.params.get("PidKp", encoding="utf8")) * Decimal('0.01'))
+      self.steerKiV = float(Decimal(self.params.get("PidKi", encoding="utf8")) * Decimal('0.001'))
+      self.steerKdV = float(Decimal(self.params.get("PidKd", encoding="utf8")) * Decimal('0.01'))
+      self.steerKf = float(Decimal(self.params.get("PidKf", encoding="utf8")) * Decimal('0.00001'))
+      self.pid = LatPIDController((CP.lateralTuning.pid.kpBP, [0.1, self.steerKpV]),
+                          (CP.lateralTuning.pid.kiBP, [0.01, self.steerKiV]),
+                          (CP.lateralTuning.pid.kdBP, [self.steerKdV]),
+                          k_f=self.steerKf, pos_limit=1.0)
+      self.mpc_frame = 0
+
   def update(self, active, CS, CP, VM, params, desired_curvature, desired_curvature_rate):
+    self.lp_timer += 1
+    if self.lp_timer > 100:
+      self.lp_timer = 0
+      self.live_tune_enabled = self.params.get_bool("OpkrLiveTunePanelEnable")
+    if self.live_tune_enabled:
+      self.live_tune(CP)
+
     pid_log = log.ControlsState.LateralPIDState.new_message()
     pid_log.steeringAngleDeg = float(CS.steeringAngleDeg)
     pid_log.steeringRateDeg = float(CS.steeringRateDeg)
