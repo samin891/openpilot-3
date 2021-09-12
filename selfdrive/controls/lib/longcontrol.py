@@ -72,7 +72,7 @@ class LongControl():
     self.v_pid = 0.0
     self.last_output_gb = 0.0
 
-    self.long_log = Params().get_bool("LongLogDisplay")
+    self.long_log = True
 
     self.vRel_prev = 0
     self.decel_damping = 1.0
