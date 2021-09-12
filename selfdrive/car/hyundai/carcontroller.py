@@ -341,7 +341,6 @@ class CarController():
         stopping = (actuators.longControlState == LongCtrlState.stopping)
 
         aReqValue = CS.scc12["aReqValue"]
-        self.aq_value = accel
         if 0 < CS.out.radarDistance <= 149 and self.radar_helper_enabled:
           stock_weight = 0.
           if aReqValue > 0.:
@@ -358,6 +357,7 @@ class CarController():
           accel = accel * (1. - stock_weight) + aReqValue * stock_weight
         else:
           stock_weight = 0.
+        self.aq_value = accel
         can_sends.append(create_scc11(self.packer, frame, set_speed, lead_visible, self.scc_live, lead_dist, lead_vrel, lead_yrel, 
          CS.out.vEgo * CV.MS_TO_KPH, self.acc_standstill, CS.scc11))
         if CS.brake_check or CS.cancel_check:
