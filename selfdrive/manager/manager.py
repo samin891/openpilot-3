@@ -37,6 +37,7 @@ def manager_init():
     ("HasAcceptedTerms", "0"),
     ("OpenpilotEnabledToggle", "1"),
     ("IsMetric", "1"),
+    ("CommunityFeaturesToggle", "1"),
     ("EndToEndToggle", "1"),
     ("IsOpenpilotViewEnabled", "0"),
     ("OpkrEnableLogger", "0"),
