@@ -61,6 +61,7 @@ class CarController():
     self.accel_lim_prev = 0
     self.accel_lim = 0
     self.counter_init = False
+    self.aq_value = 0
 
     self.resume_cnt = 0
     self.last_lead_distance = 0
@@ -340,6 +341,7 @@ class CarController():
         stopping = (actuators.longControlState == LongCtrlState.stopping)
 
         aReqValue = CS.scc12["aReqValue"]
+        self.aq_value = accel
         if 0 < CS.out.radarDistance <= 149 and self.radar_helper_enabled:
           stock_weight = 0.
           if aReqValue > 0.:
@@ -372,9 +374,8 @@ class CarController():
       self.scc12cnt = CS.scc12init["CR_VSM_Alive"]
       self.scc11cnt = CS.scc11init["AliveCounterACC"]
 
-    aq_value = CS.scc12["aReqValue"] if CS.CP.sccBus == 0 else accel
-    str_log1 = 'CV={:03.0f}  TQ={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}  GS={:.0f}  AQ={:+04.2f}  S={:.0f}/{:.0f}  FR={:03.0f}'.format(self.curve_speed,
-     abs(new_steer), self.p.STEER_MAX, self.p.STEER_DELTA_UP, self.p.STEER_DELTA_DOWN, CS.out.electGearStep, aq_value, int(CS.is_highway), CS.safety_sign_check, self.timer1.sampleTime())
+    str_log1 = 'CV={:03.0f}  TQ={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}  AQ={:+04.2f}/{:+04.2f}  S={:.0f}/{:.0f}  FR={:03.0f}'.format(self.curve_speed,
+     abs(new_steer), self.p.STEER_MAX, self.p.STEER_DELTA_UP, self.p.STEER_DELTA_DOWN, self.aq_value, CS.scc12["aReqValue"], int(CS.is_highway), CS.safety_sign_check, self.timer1.sampleTime())
 
     trace1.printf1('{}  {}'.format(str_log1, self.str_log2))
 
