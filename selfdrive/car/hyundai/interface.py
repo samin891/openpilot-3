@@ -19,8 +19,8 @@ class CarInterface(CarInterfaceBase):
     self.mad_mode_enabled = True
 
   @staticmethod
-  def get_pid_accel_limits(CP, current_speed, cruise_speed):
-    return CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX
+  def compute_gb(accel, speed):
+    return float(accel) / CarControllerParams.MAX_BRAKE
 
   @staticmethod
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), car_fw=[]):  # pylint: disable=dangerous-default-value
@@ -49,12 +49,12 @@ class CarInterface(CarInterfaceBase):
 
     ret.longitudinalTuning.deadzoneBP = [0., 4.]
     ret.longitudinalTuning.deadzoneV = [0., 0.1]
-    #ret.longitudinalTuning.kdBP = [0., 4., 9., 17., 23., 31.]
-    #ret.longitudinalTuning.kdV = [0.7, 0.65, 0.5, 0.4, 0.3, 0.2]
-    #ret.longitudinalTuning.kfBP = [0., 4., 9., 17., 23., 31.]
-    #ret.longitudinalTuning.kfV = [1., 1., 1., 1., 1., 1.]
+    ret.longitudinalTuning.kdBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kdV = [0.7, 0.65, 0.5, 0.4, 0.3, 0.2]
+    ret.longitudinalTuning.kfBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kfV = [1., 1., 1., 1., 1., 1.]
 
-    ret.longitudinalActuatorDelay = 1.0 # s
+    #ret.longitudinalActuatorDelay = 1.0 # s
 
     if candidate == CAR.SANTA_FE:
       ret.lateralTuning.pid.kf = 0.00005

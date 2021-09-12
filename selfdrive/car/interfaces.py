@@ -17,9 +17,6 @@ EventName = car.CarEvent.EventName
 # WARNING: this value was determined based on the model's training distribution,
 #          model predictions above this speed can be unpredictable
 MAX_CTRL_SPEED = 161 * CV.KPH_TO_MS  # 144 + 4 = 92 mph
-ACCEL_MAX = 2.0
-ACCEL_MIN = -3.5
-
 
 # generic car and radar interfaces
 
@@ -45,8 +42,12 @@ class CarInterfaceBase():
       self.CC = CarController(self.cp.dbc_name, CP, self.VM)
 
   @staticmethod
-  def get_pid_accel_limits(CP, current_speed, cruise_speed):
-    return ACCEL_MIN, ACCEL_MAX
+  def calc_accel_override(a_ego, a_target, v_ego, v_target):
+    return 1.
+
+  @staticmethod
+  def compute_gb(accel, speed):
+    raise NotImplementedError
 
   @staticmethod
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), car_fw=None):
@@ -71,11 +72,15 @@ class CarInterfaceBase():
     ret.pcmCruise = True     # openpilot's state is tied to the PCM's cruise state on most cars
     ret.minEnableSpeed = -1. # enable is done by stock ACC, so ignore this
     ret.steerRatioRear = 0.  # no rear steering, at least on the listed cars aboveA
+    ret.gasMaxBP = [0.]
+    ret.gasMaxV = [.5]       # half max brake
+    ret.brakeMaxBP = [0.]
+    ret.brakeMaxV = [1.]
     ret.openpilotLongitudinalControl = False
     ret.startAccel = 0.0
     ret.minSpeedCan = 0.3
-    ret.stoppingDecelRate = 0.8 # brake_travel/s while trying to stop
-    ret.startingAccelRate = 3.2 # brake_travel/s while releasing on restart
+    ret.stoppingBrakeRate = 0.2 # brake_travel/s while trying to stop
+    ret.startingBrakeRate = 0.8 # brake_travel/s while releasing on restart
     ret.stoppingControl = True
     ret.longitudinalTuning.deadzoneBP = [0.]
     ret.longitudinalTuning.deadzoneV = [0.]
@@ -83,7 +88,11 @@ class CarInterfaceBase():
     ret.longitudinalTuning.kpV = [1.]
     ret.longitudinalTuning.kiBP = [0.]
     ret.longitudinalTuning.kiV = [1.]
-    ret.longitudinalActuatorDelay = 0.15
+    ret.longitudinalTuning.kdBP = [0.]
+    ret.longitudinalTuning.kdV = [0.]
+    ret.longitudinalTuning.kfBP = [0.]
+    ret.longitudinalTuning.kfV = [1.]
+    #ret.longitudinalActuatorDelay = 0.15
     return ret
 
   # returns a car.CarState, pass in car.CarControl
@@ -91,7 +100,7 @@ class CarInterfaceBase():
     raise NotImplementedError
 
   # return sendcan, pass in a car.CarControl
-  def apply(self, c):
+  def apply(self, c, sm):
     raise NotImplementedError
 
   def create_common_events(self, cs_out, extra_gears=None, gas_resume_speed=-1, pcm_enable=True):

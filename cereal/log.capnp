@@ -538,7 +538,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   enabled @19 :Bool;
   active @36 :Bool;
 
-  longControlState @30 :Car.CarControl.Actuators.LongControlState;
+  longControlState @30 :LongControlState;
   vPid @2 :Float32;
   vTargetLead @3 :Float32;
   vCruise @22 :Float32;
@@ -586,6 +586,13 @@ struct ControlsState @0x97ff69c53601abf1 {
     preEnabled @1;
     enabled @2;
     softDisabling @3;
+  }
+
+  enum LongControlState {
+    off @0;
+    pid @1;
+    stopping @2;
+    starting @3;
   }
 
   enum AlertStatus {

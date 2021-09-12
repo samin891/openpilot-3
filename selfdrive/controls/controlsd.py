@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import os
 import math
-from numbers import Number
-
 from cereal import car, log
 from common.numpy_fast import clip
 from common.realtime import sec_since_boot, config_realtime_process, Priority, Ratekeeper, DT_CTRL
@@ -123,7 +121,7 @@ class Controls:
     self.AM = AlertManager()
     self.events = Events()
 
-    self.LoC = LongControl(self.CP)
+    self.LoC = LongControl(self.CP, self.CI.compute_gb)
     self.VM = VehicleModel(self.CP)
 
     self.lateral_control_method = 0
@@ -159,6 +157,8 @@ class Controls:
     self.events_prev = []
     self.current_alert_types = [ET.PERMANENT]
     self.logged_comm_issue = False
+    self.v_target = 0.0
+    self.a_target = 0.0
 
     # TODO: no longer necessary, aside from process replay
     self.sm['liveParameters'].valid = True
@@ -483,7 +483,6 @@ class Controls:
     long_plan = self.sm['longitudinalPlan']
 
     actuators = car.CarControl.Actuators.new_message()
-    actuators.longControlState = self.LoC.long_control_state
 
     if CS.leftBlinker or CS.rightBlinker:
       self.last_blinker_frame = self.sm.frame
@@ -495,9 +494,8 @@ class Controls:
       self.LoC.reset(v_pid=CS.vEgo)
 
     if not self.joystick_mode:
-      # accel PID loop
-      pid_accel_limits = self.CI.get_pid_accel_limits(self.CP, CS.vEgo, self.v_cruise_kph * CV.KPH_TO_MS)
-      actuators.accel = self.LoC.update(self.active and (CS.cruiseAccStatus or CS.vSetDis > 30), CS, self.CP, long_plan, pid_accel_limits, self.sm['radarState'])
+      # Gas/Brake PID loop
+      actuators.gas, actuators.brake, self.v_target, self.a_target = self.LoC.update(self.active and (CS.cruiseAccStatus or CS.vSetDis > 30), CS, self.CP, long_plan, self.sm['radarState'])
 
       # Steering PID loop and lateral MPC
       desired_curvature, desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo,
@@ -509,7 +507,8 @@ class Controls:
     else:
       lac_log = log.ControlsState.LateralDebugState.new_message()
       if self.sm.rcv_frame['testJoystick'] > 0 and self.active:
-        actuators.accel = 4.0*clip(self.sm['testJoystick'].axes[0], -1, 1)
+        gb = clip(self.sm['testJoystick'].axes[0], -1, 1)
+        actuators.gas, actuators.brake = max(gb, 0), max(-gb, 0)
 
         steer = clip(self.sm['testJoystick'].axes[1], -1, 1)
         # max angle is 45 for angle-based cars
@@ -543,11 +542,7 @@ class Controls:
 
     # Ensure no NaNs/Infs
     for p in ACTUATOR_FIELDS:
-      attr = getattr(actuators, p)
-      if not isinstance(attr, Number):
-        continue
-
-      if not math.isfinite(attr):
+      if not math.isfinite(getattr(actuators, p)):
         cloudlog.error(f"actuators.{p} not finite {actuators.to_dict()}")
         setattr(actuators, p, 0.0)
 
@@ -563,9 +558,20 @@ class Controls:
     CC.enabled = self.enabled
     CC.actuators = actuators
 
+    CC.cruiseControl.override = True
     CC.cruiseControl.cancel = self.CP.pcmCruise and not self.enabled and CS.cruiseState.enabled
+
     if self.joystick_mode and self.sm.rcv_frame['testJoystick'] > 0 and self.sm['testJoystick'].buttons[0]:
       CC.cruiseControl.cancel = True
+
+    # TODO remove car specific stuff in controls
+    # Some override values for Honda
+    # brake discount removes a sharp nonlinearity
+    brake_discount = (1.0 - clip(actuators.brake * 3., 0.0, 1.0))
+    speed_override = max(0.0, (self.LoC.v_pid + CS.cruiseState.speedOffset) * brake_discount)
+    CC.cruiseControl.speedOverride = float(speed_override if self.CP.pcmCruise else 0.0)
+    CC.cruiseControl.accelOverride = float(self.CI.calc_accel_override(CS.aEgo, self.a_target,
+                                                                       CS.vEgo, self.v_target))
 
     CC.hudControl.setSpeed = float(self.v_cruise_kph * CV.KPH_TO_MS)
     CC.hudControl.speedVisible = self.enabled
@@ -643,7 +649,7 @@ class Controls:
     controlsState.vPid = float(self.LoC.v_pid)
     controlsState.vCruise = float(self.v_cruise_kph)
     controlsState.upAccelCmd = float(self.LoC.pid.p)
-    controlsState.uiAccelCmd = float(self.LoC.pid.i)
+    controlsState.uiAccelCmd = float(self.LoC.pid.id)
     controlsState.ufAccelCmd = float(self.LoC.pid.f)
     controlsState.cumLagMs = -self.rk.remaining * 1000.
     controlsState.startMonoTime = int(start_time * 1e9)

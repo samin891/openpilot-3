@@ -8,7 +8,7 @@ from selfdrive.car.hyundai.hyundaican import create_lkas11, create_clu11, create
                                              create_scc42a, create_mdps12
 from selfdrive.car.hyundai.values import Buttons, CarControllerParams, CAR
 from opendbc.can.packer import CANPacker
-
+from selfdrive.controls.lib.longcontrol import LongCtrlState
 from selfdrive.car.hyundai.carstate import GearShifter
 from selfdrive.controls.lib.lateral_planner import LANE_CHANGE_SPEED_MIN
 
@@ -147,7 +147,7 @@ class CarController():
 
     # gas and brake
     self.accel_lim_prev = self.accel_lim
-    apply_accel = actuators.accel
+    apply_accel = actuators.gas - actuators.brake
 
     apply_accel, self.accel_steady = accel_hysteresis(apply_accel, self.accel_steady)
     apply_accel = clip(apply_accel * ACCEL_SCALE, ACCEL_MIN, ACCEL_MAX)
@@ -255,7 +255,7 @@ class CarController():
     if self.mode_change_timer > 0:
       self.mode_change_timer -= 1
 
-    run_speed_ctrl = CS.acc_active and (CS.out.cruiseState.modeSel > 0)
+    run_speed_ctrl = CS.acc_active and CS.out.cruiseState.modeSel > 0
     if not run_speed_ctrl:
       str_log2 = 'BUS={:1.0f}/{:1.0f}  MODE={}  MDPS={}  LKAS={}  CSG={:1.0f}  LEAD={}  FR={:03.0f}'.format(
        CS.CP.mdpsBus, CS.CP.sccBus, CS.out.cruiseState.modeSel, CS.out.steerWarning, CS.lkas_button_on, CS.cruiseGapSet, 0 < CS.lead_distance < 149, self.timer1.sampleTime())
@@ -388,6 +388,9 @@ class CarController():
     aq_value = CS.scc12["aReqValue"] if CS.CP.sccBus == 0 else apply_accel
     str_log1 = 'CV={:03.0f}  TQ={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}  GS={:.0f}  AQ={:+04.2f}  S={:.0f}/{:.0f}  FR={:03.0f}'.format(self.curve_speed,
      abs(new_steer), self.p.STEER_MAX, self.p.STEER_DELTA_UP, self.p.STEER_DELTA_DOWN, CS.out.electGearStep, aq_value, int(CS.is_highway), CS.safety_sign_check, self.timer1.sampleTime())
+
+    trace1.printf1('{}  {}'.format(str_log1, self.str_log2))
+
     # # 20 Hz LFA MFA message
     # if frame % 5 == 0 and self.car_fingerprint in [CAR.SONATA, CAR.PALISADE, CAR.IONIQ, CAR.KIA_NIRO_EV, CAR.KIA_NIRO_HEV_2021,
     #                                                CAR.IONIQ_EV_2020, CAR.IONIQ_PHEV, CAR.KIA_CEED, CAR.KIA_SELTOS, CAR.KONA_EV,
