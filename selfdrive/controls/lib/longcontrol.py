@@ -73,6 +73,8 @@ class LongControl():
     self.long_stat = ""
     self.long_plan_source = ""
 
+    self.candidate = candidate
+
     self.vRel_prev = 0
     self.decel_damping = 1.0
     self.decel_damping2 = 1.0
