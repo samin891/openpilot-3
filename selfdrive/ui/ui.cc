@@ -124,6 +124,7 @@ static void update_state(UIState *s) {
     } else if (scene.lateralControlMethod == 2) {
       scene.output_scale = scene.controls_state.getLateralControlState().getLqrState().getOutput();
     }
+    scene.curvaturef = scene.controls_state.getCurvaturef();
 
     scene.alertTextMsg1 = scene.controls_state.getAlertTextMsg1(); //debug1
     scene.alertTextMsg2 = scene.controls_state.getAlertTextMsg2(); //debug2

@@ -157,7 +157,8 @@ typedef struct UIScene {
   float steerRatio;
   bool brakeLights;
   bool steerOverride;
-  float output_scale; 
+  float output_scale;
+  float curvaturef;
   int batteryPercent;
   bool batteryCharging;
   char batteryStatus[64];

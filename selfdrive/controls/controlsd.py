@@ -207,6 +207,8 @@ class Controls:
     self.lane_change_delay = int(Params().get("OpkrAutoLaneChangeDelay", encoding="utf8"))
     self.auto_enable_speed = max(1, int(Params().get("AutoEnableSpeed", encoding="utf8")))
 
+    self.curvaturef = 0.0
+
   def auto_enable(self, CS):
     if self.state != State.enabled and CS.vEgo >= self.auto_enable_speed * CV.KPH_TO_MS and CS.gearShifter == 2 and self.sm['liveCalibration'].calStatus != Calibration.UNCALIBRATED:
       if self.sm.all_alive_and_valid() and self.enabled != self.controlsAllowed:
@@ -563,11 +565,10 @@ class Controls:
       actuators.accel = self.LoC.update(self.active and CS.cruiseState.speed > 1., CS, self.CP, long_plan, pid_accel_limits, self.sm['radarState'])
 
       # Steering PID loop and lateral MPC
-      desired_curvature, desired_curvature_rate, desired_curvature_f = get_lag_adjusted_curvature(self.CP, CS.vEgo,
+      desired_curvature, desired_curvature_rate, self.curvaturef = get_lag_adjusted_curvature(self.CP, CS.vEgo,
                                                                              lat_plan.psis,
                                                                              lat_plan.curvatures,
                                                                              lat_plan.curvatureRates)
-      print('{}'.format(desired_curvature_f))
       actuators.steer, actuators.steeringAngleDeg, lac_log = self.LaC.update(self.active, CS, self.CP, self.VM, params,
                                                                              desired_curvature, desired_curvature_rate)
     else:
@@ -716,6 +717,7 @@ class Controls:
     controlsState.canErrorCounter = self.can_error_counter
     controlsState.alertTextMsg1 = self.log_alertTextMsg1
     controlsState.alertTextMsg2 = self.log_alertTextMsg2
+    controlsState.curvaturef = self.curvaturef
     if self.map_enabled:
       controlsState.limitSpeedCamera = float(self.sm['longitudinalPlan'].targetSpeedCamera)
       controlsState.limitSpeedCameraDist = float(self.sm['longitudinalPlan'].targetSpeedCameraDist)

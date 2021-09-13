@@ -573,6 +573,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   dynamicTRMode @66 :UInt8;
   dynamicTRValue @67 :Float32;
   mapSign @68 :Float32;
+  curvaturef @69 :Float32;
 
   lateralControlState :union {
     indiState @52 :LateralINDIState;

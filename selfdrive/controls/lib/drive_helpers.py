@@ -71,7 +71,7 @@ def get_lag_adjusted_curvature(CP, v_ego, psis, curvatures, curvature_rates):
 
   # TODO this needs more thought, use .2s extra for now to estimate other delays
   delay = max(0.01, CP.steerActuatorDelay)
-  delay_f = max(0.01, 3.0)
+  delay_f = max(0.01, 5.0)
   current_curvature = curvatures[0]
   psi = interp(delay, T_IDXS[:CONTROL_N], psis)
   psi_f = interp(delay_f, T_IDXS[:CONTROL_N], psis)
