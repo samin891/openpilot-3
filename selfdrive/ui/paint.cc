@@ -315,6 +315,7 @@ static void ui_draw_debug(UIState *s) {
 
   int ui_viz_rx = bdr_s + 190;
   int ui_viz_ry = bdr_s;
+  int ui_viz_rx_center = s->fb_w/2;
   
   nvgTextAlign(s->vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
 
