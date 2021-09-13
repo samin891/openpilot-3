@@ -45,6 +45,8 @@ bool spoofing_started = false;
 bool fake_send = false;
 bool connected_once = false;
 
+bool white_panda_support = Params().getBool("WhitePandaSupport");
+
 void safety_setter_thread() {
   LOGD("Starting safety setter thread");
   // diagnostic only is the default, needed for VIN query
@@ -592,7 +594,7 @@ int main() {
     threads.push_back(std::thread(can_send_thread));
     threads.push_back(std::thread(can_recv_thread));
     threads.push_back(std::thread(hardware_control_thread));
-    if (!Params().getBool("WhitePandaSupport")) threads.push_back(std::thread(pigeon_thread));
+    if (!white_panda_support) threads.push_back(std::thread(pigeon_thread));
 
     for (auto &t : threads) t.join();
 
