@@ -525,7 +525,7 @@ class StoppingDistAdjToggle : public ToggleControl {
   Q_OBJECT
 
 public:
-  StoppingDistAdjToggle() : ToggleControl("정지거리 조정", "레이더 정지거리보다 조금 더 앞에 정지합니다. 일부 울컥거림 현상이 나타날 수 있으니 불편하신분들은 기능을 끄십시오.", "", Params().getBool("StoppingDistAdj")) {
+  StoppingDistAdjToggle() : ToggleControl("정지거리 조정", "레이더 정지거리보다 조금 더 앞에 정지합니다. 빠른속도로 앞차에 접근할 경우 간혹 충분히 멈추는게 힘들 수 있으니 불편하신분들은 기능을 끄십시오.", "../assets/offroad/icon_shell.png", Params().getBool("StoppingDistAdj")) {
     QObject::connect(this, &StoppingDistAdjToggle::toggleFlipped, [=](int state) {
       bool status = state ? true : false;
       Params().putBool("StoppingDistAdj", status);

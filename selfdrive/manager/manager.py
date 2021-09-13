@@ -95,7 +95,7 @@ def manager_init():
     ("OpkrMaxAngleLimit", "90"),
     ("OpkrSpeedLimitOffset", "0"),
     ("OpkrLiveSteerRatio", "1"),
-    ("OpkrVariableSteerMax", "1"),
+    ("OpkrVariableSteerMax", "0"),
     ("OpkrVariableSteerDelta", "0"),
     ("FingerprintTwoSet", "0"),
     ("OpkrVariableCruiseProfile", "1"),
