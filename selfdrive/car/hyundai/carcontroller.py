@@ -159,6 +159,7 @@ class CarController():
     self.cc_timer = 0
     self.on_speed_control = False
     self.map_enabled = self.params.get_bool("OpkrMapEnable")
+    self.rsc_timer = 0
 
     if CP.lateralTuning.which() == 'pid':
       self.str_log2 = 'T={:0.2f}/{:0.3f}/{:0.2f}/{:0.5f}'.format(CP.lateralTuning.pid.kpV[1], CP.lateralTuning.pid.kiV[1], CP.lateralTuning.pid.kdV[0], CP.lateralTuning.pid.kf)
@@ -320,6 +321,7 @@ class CarController():
     if pcm_cancel_cmd and self.longcontrol:
       can_sends.append(create_clu11(self.packer, frame, CS.clu11, Buttons.CANCEL, clu11_speed, CS.CP.sccBus))
 
+    self.rsc_timer += 1
     if CS.out.cruiseState.standstill:
       self.standstill_status = 1
       if self.opkr_autoresume:
@@ -362,7 +364,8 @@ class CarController():
     # reset lead distnce after the car starts moving
     elif self.last_lead_distance != 0:
       self.last_lead_distance = 0
-    elif run_speed_ctrl and frame % 200 == 0:
+    elif run_speed_ctrl and self.rsc_timer > 5:
+      self.rsc_timer = 0
       is_sc_run = self.SC.update(CS, sm)
       if is_sc_run:
         can_sends.append(create_clu11(self.packer, self.resume_cnt, CS.clu11, self.SC.btn_type, self.SC.sc_clu_speed)) if not self.longcontrol \
@@ -386,6 +389,8 @@ class CarController():
         else:
           self.cruise_gap_adjusting = False
     else:
+      if self.rsc_timer > 100:
+        self.rsc_timer = 0
       self.cruise_gap_adjusting = False
 
     if CS.cruise_buttons == 4:
