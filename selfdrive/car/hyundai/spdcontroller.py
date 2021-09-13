@@ -121,7 +121,7 @@ class SpdController():
 
         if set_speed_kph <= 20 and CS.is_set_speed_in_mph:
             set_speed_kph = 20
-        elif set_speed_kph <= 30 and not C.is_set_speed_in_mph:
+        elif set_speed_kph <= 30 and not CS.is_set_speed_in_mph:
             set_speed_kph = 30
 
         self.cruise_set_speed_kph = set_speed_kph
