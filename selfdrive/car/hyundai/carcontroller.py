@@ -101,11 +101,6 @@ class CarController():
     self.radar_helper_enabled = self.params.get_bool("RadarLongHelper")
     self.stopping_dist_adj_enabled = self.params.get_bool("StoppingDistAdj")
 
-    self.steer_mode = ""
-    self.mdps_status = ""
-    self.lkas_switch = ""
-    self.leadcar_status = ""
-
     self.longcontrol = CP.openpilotLongitudinalControl
     #self.scc_live is true because CP.radarOffCan is False
     self.scc_live = not CP.radarOffCan
@@ -192,10 +187,6 @@ class CarController():
     self.vRel2 = int(plan.vRel2 * 3.6 + 0.5) #EON Lead
     self.lead2_status = plan.status2
     self.on_speed_control = plan.onSpeedControl
-
-    lateral_plan = sm['lateralPlan']
-    self.outScale = lateral_plan.outputScale
-    self.vCruiseSet = lateral_plan.vCruiseSet
     
     #Hoya
     self.model_speed = interp(abs(lateral_plan.vCurvature), [0.0, 0.0002, 0.00074, 0.0025, 0.008, 0.02], [255, 255, 130, 90, 60, 20])
@@ -371,7 +362,7 @@ class CarController():
     # reset lead distnce after the car starts moving
     elif self.last_lead_distance != 0:
       self.last_lead_distance = 0
-    elif run_speed_ctrl and frame % 10 == 0:
+    elif run_speed_ctrl and frame % 5 == 0:
       is_sc_run = self.SC.update(CS, sm, self)
       if is_sc_run:
         can_sends.append(create_clu11(self.packer, self.resume_cnt, CS.clu11, self.SC.btn_type, self.SC.sc_clu_speed)) if not self.longcontrol \
@@ -534,8 +525,8 @@ class CarController():
       self.scc12cnt = CS.scc12init["CR_VSM_Alive"]
       self.scc11cnt = CS.scc11init["AliveCounterACC"]
 
-    str_log1 = 'CV={:03.0f}  TQ={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}  AQ={:+04.2f}/{:+04.2f}  S={:.0f}/{:.0f}  FR={:03.0f}'.format(self.curve_speed,
-     abs(new_steer), self.p.STEER_MAX, self.p.STEER_DELTA_UP, self.p.STEER_DELTA_DOWN, self.aq_value, CS.scc12["aReqValue"], int(CS.is_highway), CS.safety_sign_check, self.timer1.sampleTime())
+    str_log1 = 'CV={:03.0f}  TQ={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}  AQ={:+04.2f}  S={:.0f}/{:.0f}  FR={:03.0f}'.format(self.curve_speed,
+     abs(new_steer), self.p.STEER_MAX, self.p.STEER_DELTA_UP, self.p.STEER_DELTA_DOWN, self.aq_value if self.longcontrol else CS.scc12["aReqValue"], int(CS.is_highway), CS.safety_sign_check, self.timer1.sampleTime())
 
 
     self.cc_timer += 1

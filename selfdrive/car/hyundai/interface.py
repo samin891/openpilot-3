@@ -84,7 +84,7 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalActuatorDelay = 1.0 # s
     
     ret.vCruisekph = 0
-
+    ret.resSpeed = 0
 
     params = Params()
     PidKp = float(Decimal(params.get("PidKp", encoding="utf8")) * Decimal('0.01'))
@@ -364,6 +364,10 @@ class CarInterface(CarInterfaceBase):
       self.CP.vCruisekph = self.CC.v_cruise_kph_auto_res
     else:
       self.CP.vCruisekph = 0
+    if self.CC.res_speed != 0:
+      self.CP.resSpeed = self.CC.res_speed
+    else:
+      self.CP.resSpeed = 0
 
     if self.CC.mode_change_timer and self.CS.out.cruiseState.modeSel == 0:
       events.add(EventName.modeChangeOpenpilot)

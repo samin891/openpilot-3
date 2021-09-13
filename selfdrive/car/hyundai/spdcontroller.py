@@ -2,82 +2,25 @@
 #partially modified by opkr
 import math
 import numpy as np
-
-from cereal import log
 import cereal.messaging as messaging
 
 from selfdrive.config import Conversions as CV
 from selfdrive.controls.lib.long_mpc import LongitudinalMpc
 from selfdrive.controls.lib.lane_planner import TRAJECTORY_SIZE
 from selfdrive.car.hyundai.values import Buttons
-from common.numpy_fast import clip, interp
+from common.numpy_fast import interp
 from common.params import Params
 
-from selfdrive.config import RADAR_TO_CAMERA
-
 import common.log as trace1
-import common.CTime1000 as tm
-
 
 MAX_SPEED = 255.0
 MIN_CURVE_SPEED = 30.
 
-LON_MPC_STEP = 0.2  # first step is 0.2s
-MAX_SPEED_ERROR = 2.0
-AWARENESS_DECEL = -0.2     # car smoothly decel at .2m/s^2 when user is distracted
-
-# lookup tables VS speed to determine min and max accels in cruise
-# make sure these accelerations are smaller than mpc limits
-_A_CRUISE_MIN_V = [-1.0, -.8, -.67, -.5, -.30]
-_A_CRUISE_MIN_BP = [0., 5.,  10., 20.,  40.]
-
-# need fast accel at very low speed for stop and go
-# make sure these accelerations are smaller than mpc limits
-_A_CRUISE_MAX_V = [1.2, 1.2, 0.65, .4]
-_A_CRUISE_MAX_V_FOLLOWING = [1.6, 1.6, 0.65, .4]
-_A_CRUISE_MAX_BP = [0.,  6.4, 22.5, 40.]
-
-# Lookup table for turns
-_A_TOTAL_MAX_V = [1.7, 3.2]
-_A_TOTAL_MAX_BP = [20., 40.]
-
-# 75th percentile
-SPEED_PERCENTILE_IDX = 7
-
-def limit_accel_in_turns(v_ego, angle_steers, a_target, steerRatio, wheelbase):
-    """
-    This function returns a limited long acceleration allowed, depending on the existing lateral acceleration
-    this should avoid accelerating when losing the target in turns
-    """
-
-    a_total_max = interp(v_ego, _A_TOTAL_MAX_BP, _A_TOTAL_MAX_V)
-    a_y = v_ego**2 * angle_steers * CV.DEG_TO_RAD / (steerRatio * wheelbase)
-    a_x_allowed = math.sqrt(max(a_total_max**2 - a_y**2, 0.))
-
-    return [a_target[0], min(a_target[1], a_x_allowed)]
-
-
 class SpdController():
     def __init__(self, CP=None):
-        self.long_control_state = 0  # initialized to off
-
         self.seq_step_debug = 0
         self.long_curv_timer = 0
-
         self.path_x = np.arange(192)
-
-        self.traceSC = trace1.Loger("SPD_CTRL")
-
-        self.v_model = 0
-        self.a_model = 0
-        self.v_cruise = 0
-        self.a_cruise = 0
-
-        self.l_poly = []
-        self.r_poly = []
-
-        self.Timer1 = tm.CTime1000("SPD")
-        self.time_no_lean = 0
 
         self.wait_timer2 = 0
 
@@ -108,12 +51,6 @@ class SpdController():
         self.second = 0
         self.sm = messaging.SubMaster(['liveMapData'])
 
-    def reset(self):
-        self.v_model = 0
-        self.a_model = 0
-        self.v_cruise = 0
-        self.a_cruise = 0
-
     def cal_curve_speed(self, sm, v_ego):
         md = sm['modelV2']
         if md is not None and len(md.position.x) == TRAJECTORY_SIZE and len(md.position.y) == TRAJECTORY_SIZE:
@@ -135,65 +72,9 @@ class SpdController():
                 self.curve_speed = MAX_SPEED
         else:
             self.curve_speed = MAX_SPEED
+        self.curve_speed = min(MAX_SPEED, self.curve_speed * CV.MS_TO_KPH)
 
-        return min(MAX_SPEED, self.curve_speed * CV.MS_TO_KPH)
-
-    def calc_laneProb(self, prob, v_ego):
-        if len(prob) > 1:
-            path = list(prob)
-
-            # TODO: compute max speed without using a list of points and without numpy
-            y_p = 3 * path[0] * self.path_x**2 + \
-                2 * path[1] * self.path_x + path[2]
-            y_pp = 6 * path[0] * self.path_x + 2 * path[1]
-            curv = y_pp / (1. + y_p**2)**1.5
-
-            #print( 'curv = {}'.format( curv) )
-
-            a_y_max = 2.975 - v_ego * 0.0375  # ~1.85 @ 75mph, ~2.6 @ 25mph
-            v_curvature = np.sqrt(a_y_max / np.clip(np.abs(curv), 1e-4, None))
-            model_speed = np.min(v_curvature)
-            # Don't slow down below 20mph
-
-            model_speed *= CV.MS_TO_KPH
-            model_speed = max(MIN_CURVE_SPEED, model_speed)
-           # print( 'v_curvature = {}'.format( v_curvature) )
-            #print( 'model_speed = {}  '.format( model_speed) )
-
-            
-            if model_speed > MAX_SPEED:
-               model_speed = MAX_SPEED
-        else:
-            model_speed = MAX_SPEED
-          
-
-        return  model_speed
-
-
-    def cal_model_speed(self, sm, v_ego):
-        md = sm['modelV2']
-        #print('{}'.format( md ) )
-        if len(md.path.poly):
-            self.prob = list(md.path.poly)
-
-            model_speed = self.calc_laneProb( self.prob, v_ego )
-    
-            delta_model = model_speed - self.old_model_speed
-            if self.old_model_init < 10:
-                self.old_model_init += 1
-                self.old_model_speed = model_speed
-            elif self.old_model_speed == model_speed:
-                pass
-            elif delta_model < -1:
-                self.old_model_speed -= 0.5  #model_speed
-            elif delta_model > 0:
-                self.old_model_speed += 0.1
-
-            else:
-                self.old_model_speed = model_speed
-
-        return self.old_model_speed
-
+        return self.curve_speed
 
     def update_cruiseSW(self, CS):
         set_speed_kph = int(round(self.cruise_set_speed_kph))
@@ -231,74 +112,32 @@ class SpdController():
             self.curise_set_first = 1
             self.prev_VSetDis = int(CS.VSetDis)
             set_speed_kph = int(CS.VSetDis)
-            if self.prev_clu_CruiseSwState != CS.cruise_buttons:  # MODE 전환.
+            if self.prev_clu_CruiseSwState != CS.cruise_buttons:  # MODE Change
                 if CS.cruise_buttons == Buttons.GAP_DIST and not CS.acc_active and CS.out.cruiseState.available:
                     self.cruise_set_mode += 1
                 if self.cruise_set_mode > 5:
                     self.cruise_set_mode = 0
                 self.prev_clu_CruiseSwState = CS.cruise_buttons
-            
 
         if set_speed_kph <= 20 and CS.is_set_speed_in_mph:
             set_speed_kph = 20
-        elif set_speed_kph <= 30 and not CS.is_set_speed_in_mph:
+        elif set_speed_kph <= 30 and not C.is_set_speed_in_mph:
             set_speed_kph = 30
 
         self.cruise_set_speed_kph = set_speed_kph
         return self.cruise_set_mode, set_speed_kph
 
-
-    @staticmethod
-    def get_lead(sm):
-        plan = sm['longitudinalPlan']
-        if 0 < plan.dRel1 < 149:
-            dRel = int(plan.dRel1) #EON Lead
-            yRel = int(plan.yRel1) #EON Lead
-            vRel = int(plan.vRel1 * 3.6 + 0.5) #EON Lead
-        else:
-            dRel = 150
-            yRel = 0
-            vRel = 0
-
-
-        return dRel, yRel, vRel
-
-
-
-    def get_tm_speed(self, CS, set_time, add_val, safety_dis=5):
+    def get_tm_speed(self, CS, set_time, add_val):
         time = int(set_time)
-
-        delta_speed = int(CS.VSetDis) - int(round(CS.clu_Vanz))
         set_speed = int(CS.VSetDis) + add_val
-        
-        if add_val > 0:  # 증가
-            if delta_speed > safety_dis:
-              time = int(set_time)
-
-        else:
-            if delta_speed < -safety_dis:
-              time = int(set_time)
 
         return time, set_speed
 
-    # returns a 
-    def update_lead(self, c, can_strings):
-        raise NotImplementedError
-
-    def update_curv(self, CS, sm, curve_speed):
-        raise NotImplementedError
-
-    def update_log(self, CS, set_speed, target_set_speed, long_wait_cmd):
-        str3 = 'M={:3.0f} DST={:3.0f} VSD={:.0f} DA={:.0f}/{:.0f}/{:.0f} DG={} DO={:.0f}'.format(
-            CS.out.cruiseState.modeSel, target_set_speed, CS.VSetDis, CS.driverAcc_time, long_wait_cmd, self.long_curv_timer, self.seq_step_debug, CS.driverOverride )
-        str4 = ' CS={:.1f}/{:.1f} '.format(  CS.lead_distance, CS.lead_objspd )
-        str5 = str3 +  str4
-        trace1.printf2( str5 )
-
-    def lead_control(self, CS, sm, CC):
-        dRel = CC.dRel
-        yRel = CC.yRel
-        vRel = CC.vRel
+    def lead_control(self, CS, sm):
+        plan = sm['longitudinalPlan']
+        dRel = int(plan.dRel1)
+        yRel = int(plan.yRel1)
+        vRel = int(plan.vRel1 * 3.6 + 0.5)
         active_time = 10
         btn_type = Buttons.NONE
         #lead_1 = sm['radarState'].leadOne
@@ -308,12 +147,11 @@ class SpdController():
         if self.long_curv_timer < 600:
             self.long_curv_timer += 1
 
+        # var cruise
+        lead_wait_cmd, lead_set_speed = self.update_lead(sm, CS, dRel, yRel, vRel)
 
-        # 선행 차량 거리유지
-        lead_wait_cmd, lead_set_speed = self.update_lead( sm, CS, dRel, yRel, vRel, CC)
-
-        # 커브 감속.
-        curve_speed = CC.curve_speed   #cal_curve_speed(sm, CS.out.vEgo)
+        # curv slowness
+        curve_speed = self.curve_speed   #cal_curve_speed(sm, CS.out.vEgo)
         curv_wait_cmd, curv_set_speed = self.update_curv(CS, sm, curve_speed)
 
         if curv_wait_cmd != 0:
@@ -370,18 +208,15 @@ class SpdController():
         if self.cruise_set_mode == 0:
             btn_type = Buttons.NONE
 
-
         self.update_log( CS, set_speed, target_set_speed, long_wait_cmd )
-
 
         return btn_type, set_speed, active_time
 
 
-
-    def update(self, CS, sm, CC):
+    def update(self, CS, sm):
         self.cruise_set_mode = CS.out.cruiseState.modeSel
         #self.cruise_set_speed_kph = int(round(CS.out.cruiseState.speed * CV.MS_TO_KPH))
-        self.cruise_set_speed_kph = int(round(CC.vCruiseSet))
+        self.cruise_set_speed_kph = int(round(sm['lateralPlan'].vCruiseSet))
         if CS.driverOverride == 2 or not CS.acc_active or CS.cruise_buttons == Buttons.RES_ACCEL or CS.cruise_buttons == Buttons.SET_DECEL:
             self.resume_cnt = 0
             self.btn_type = Buttons.NONE
@@ -390,9 +225,9 @@ class SpdController():
         elif self.wait_timer2:
             self.wait_timer2 -= 1
         else:
-            btn_type, clu_speed, active_time = self.lead_control( CS, sm, CC )   # speed controller spdcontroller.py
+            btn_type, clu_speed, active_time = self.lead_control(CS, sm)   # speed controller spdcontroller.py
 
-            if (0 <= int(CS.clu_Vanz) <= 1 or 7 < int(CS.clu_Vanz) < 15) and CC.vRel <= 0:
+            if (0 <= int(CS.clu_Vanz) <= 1 or 7 < int(CS.clu_Vanz) < 15) and sm['longitudinalPlan'].vRel1 <= 0:
                 self.btn_type = Buttons.NONE
             elif self.btn_type != Buttons.NONE:
                 pass

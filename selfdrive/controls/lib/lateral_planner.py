@@ -293,6 +293,8 @@ class LateralPlanner():
     else:
       self.solution_invalid_cnt = 0
 
+    print(type(self.mpc_solution.curvature))
+
   def publish(self, sm, pm):
     plan_solution_valid = self.solution_invalid_cnt < 2
     plan_send = messaging.new_message('lateralPlan')
