@@ -4,6 +4,9 @@
 
 #include "selfdrive/ui/qt/util.h"
 
+#include <QProcess>
+#include <QSoundEffect>
+
 void Sidebar::drawMetric(QPainter &p, const QString &label, const QString &val, QColor c, int y) {
   const QRect rect = {30, y, 240, val.isEmpty() ? (label.contains("\n") ? 124 : 100) : 148};
 
@@ -43,9 +46,42 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent) {
   setFixedWidth(300);
 }
 
-void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
+void Sidebar::mousePressEvent(QMouseEvent *event) {
   if (settings_btn.contains(event->pos())) {
-    emit openSettings();
+    QUIState::ui_state.scene.setbtn_count = QUIState::ui_state.scene.setbtn_count + 1;
+    if (QUIState::ui_state.scene.setbtn_count > 1) {
+      QUIState::ui_state.scene.setbtn_count = 0;
+      emit openSettings();
+    }
+    return;
+  }
+  // OPKR 
+  if (home_btn.contains(event->pos())) {
+      QUIState::ui_state.scene.homebtn_count = QUIState::ui_state.scene.homebtn_count + 1;
+    if (QUIState::ui_state.scene.homebtn_count > 2) {
+      QUIState::ui_state.scene.homebtn_count = 0;
+      QProcess::execute("/data/openpilot/selfdrive/assets/addon/script/run_mixplorer.sh");
+    }
+    return;
+  }
+  // OPKR map overlay
+  if (overlay_btn.contains(event->pos()) && QUIState::ui_state.scene.started) {
+    QSoundEffect effect;
+    effect.setSource(QUrl::fromLocalFile("/data/openpilot/selfdrive/assets/sounds/warning_1.wav"));
+    //effect.setLoopCount(1);
+    //effect.setLoopCount(QSoundEffect::Infinite);
+    //effect.setVolume(0.1);
+    float volume = 0.5f;
+    if (QUIState::ui_state.scene.nVolumeBoost < 0) {
+      volume = 0.0f;
+    } else if (QUIState::ui_state.scene.nVolumeBoost > 1) {
+      volume = QUIState::ui_state.scene.nVolumeBoost * 0.01;
+    }
+    effect.setVolume(volume);
+    effect.play();
+    QProcess::execute("am start --activity-task-on-home com.opkr.maphack/com.opkr.maphack.MainActivity");
+    QUIState::ui_state.scene.map_on_top = false;
+    QUIState::ui_state.scene.map_on_overlay = !QUIState::ui_state.scene.map_on_overlay;
   }
 }
 

@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
 
   QPushButton *btn = new QPushButton();
 #ifdef __aarch64__
+  QPushButton *btn2 = new QPushButton();
   QLabel *label2 = new QLabel();
   QString device_ip = "---";
   const QHostAddress &localhost = QHostAddress(QHostAddress::LocalHost);
@@ -48,10 +49,16 @@ int main(int argc, char *argv[]) {
   label2->setStyleSheet("color: #e0e879");
   main_layout->addWidget(label2, 0, 0, Qt::AlignRight | Qt::AlignTop);
   btn->setText("Git Pull");
+  btn2->setText("MixPlorer");
   QObject::connect(btn, &QPushButton::clicked, [=]() {
     QProcess::execute("/data/openpilot/selfdrive/assets/addon/script/gitpull.sh");
     //Hardware::reboot();
   });
+  QObject::connect(btn2, &QPushButton::clicked, [=]() {
+    QProcess::execute("/data/openpilot/selfdrive/assets/addon/script/run_mixplorer.sh");
+    btn2->setEnabled(false);
+  });
+  main_layout->addWidget(btn2, 0, 0, Qt::AlignLeft | Qt::AlignBottom);
 #else
   btn->setText("Exit");
   QObject::connect(btn, &QPushButton::clicked, &a, &QApplication::quit);

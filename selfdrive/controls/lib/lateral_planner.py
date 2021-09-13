@@ -15,7 +15,7 @@ from decimal import Decimal
 LaneChangeState = log.LateralPlan.LaneChangeState
 LaneChangeDirection = log.LateralPlan.LaneChangeDirection
 
-LANE_CHANGE_SPEED_MIN = 30 * CV.KPH_TO_MS
+LANE_CHANGE_SPEED_MIN = float(int(Params().get("OpkrLaneChangeSpeed", encoding="utf8")) * CV.KPH_TO_MS)
 LANE_CHANGE_TIME_MAX = 10.
 
 DESIRES = {
@@ -55,7 +55,9 @@ class LateralPlanner():
     self.laneless_mode_status = False
     self.laneless_mode_status_buffer = False
 
-    self.lane_change_auto_delay = 0.5
+    self.lane_change_delay = int(Params().get("OpkrAutoLaneChangeDelay", encoding="utf8"))
+    self.lane_change_auto_delay = 0.0 if self.lane_change_delay == 0 else 0.2 if self.lane_change_delay == 1 else 0.5 if self.lane_change_delay == 2 \
+     else 1.0 if self.lane_change_delay == 3 else 1.5 if self.lane_change_delay == 4 else 2.0
 
     self.lane_change_wait_timer = 0.0
     self.lane_change_state = LaneChangeState.off
@@ -72,10 +74,11 @@ class LateralPlanner():
     self.t_idxs = np.arange(TRAJECTORY_SIZE)
     self.y_pts = np.zeros(TRAJECTORY_SIZE)
 
-    self.lane_change_adjust = [0.1, 0.2, 0.6, 1.0]
+    self.lane_change_adjust = [float(Decimal(Params().get("LCTimingFactor30", encoding="utf8")) * Decimal('0.01')), float(Decimal(Params().get("LCTimingFactor60", encoding="utf8")) * Decimal('0.01')),
+     float(Decimal(Params().get("LCTimingFactor80", encoding="utf8")) * Decimal('0.01')), float(Decimal(Params().get("LCTimingFactor110", encoding="utf8")) * Decimal('0.01'))]
     self.lane_change_adjust_vel = [30*CV.KPH_TO_MS, 60*CV.KPH_TO_MS, 80*CV.KPH_TO_MS, 110*CV.KPH_TO_MS]
     self.lane_change_adjust_new = 2
-    self.lane_change_adjust_enable = True
+    self.lane_change_adjust_enable = Params().get_bool("LCTimingFactorEnable")
 
     self.standstill_elapsed_time = 0.0
     self.v_cruise_kph = 0
@@ -100,13 +103,11 @@ class LateralPlanner():
     self.desired_curvature_rate = 0.0
     self.safe_desired_curvature_rate = 0.0
 
-    self.use_lanelines = False
-    self.laneless_mode = int(Params().get("LanelessMode", encoding="utf8"))
-
-
   def update(self, sm, CP):
     self.second += DT_MDL
     if self.second > 1.0:
+      self.use_lanelines = not Params().get_bool("EndToEndToggle")
+      self.laneless_mode = int(Params().get("LanelessMode", encoding="utf8"))
       if Params().get_bool("OpkrLiveTunePanelEnable"):
         self.steer_rate_cost = float(Decimal(Params().get("SteerRateCostAdj", encoding="utf8")) * Decimal('0.01'))
       self.second = 0.0

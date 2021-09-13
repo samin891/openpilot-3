@@ -12,7 +12,8 @@ from common.basedir import BASEDIR
 from common.params import Params, ParamKeyType
 from common.text_window import TextWindow
 from selfdrive.boardd.set_time import set_time
-from selfdrive.hardware import HARDWARE, PC
+from selfdrive.hardware import HARDWARE, PC, EON
+from selfdrive.hardware.eon.apk import (pm_apply_packages, update_apks)
 from selfdrive.manager.helpers import unblock_stdout
 from selfdrive.manager.process import ensure_running
 from selfdrive.manager.process_config import managed_processes
@@ -40,12 +41,27 @@ def manager_init():
     ("CommunityFeaturesToggle", "1"),
     ("EndToEndToggle", "1"),
     ("IsOpenpilotViewEnabled", "0"),
+    ("OpkrAutoShutdown", "2"),
+    ("OpkrForceShutdown", "5"),
+    ("OpkrAutoScreenOff", "0"),
+    ("OpkrUIBrightness", "0"),
+    ("OpkrUIVolumeBoost", "0"),
+    ("OpkrEnableDriverMonitoring", "1"),
     ("OpkrEnableLogger", "0"),
     ("OpkrEnableUploader", "0"),
+    ("OpkrEnableGetoffAlert", "1"),
+    ("OpkrAutoResume", "1"),
+    ("OpkrVariableCruise", "1"),
+    ("OpkrLaneChangeSpeed", "45"),
+    ("OpkrAutoLaneChangeDelay", "0"),
+    ("OpkrSteerAngleCorrection", "0"),
     ("PutPrebuiltOn", "1"),
+    ("LdwsCarFix", "0"),
+    ("LateralControlMethod", "0"),
+    ("CruiseStatemodeSelInit", "1"),
     ("InnerLoopGain", "35"),
     ("OuterLoopGain", "20"),
-    ("TimeConstant", "15"),
+    ("TimeConstant", "14"),
     ("ActuatorEffectiveness", "20"),
     ("Scale", "1500"),
     ("LqrKi", "15"),
@@ -56,14 +72,83 @@ def manager_init():
     ("PidKf", "7"),
     ("CameraOffsetAdj", "60"),
     ("PathOffsetAdj", "0"),
+    ("SteerRatioAdj", "1550"),
+    ("SteerRatioMaxAdj", "1750"),
+    ("SteerActuatorDelayAdj", "20"),
     ("SteerRateCostAdj", "35"),
-    ("DebugUi1", "1"),
-    ("DebugUi2", "1"),
+    ("SteerLimitTimerAdj", "100"),
+    ("TireStiffnessFactorAdj", "100"),
+    ("SteerMaxBaseAdj", "384"),
+    ("SteerMaxAdj", "384"),
+    ("SteerDeltaUpBaseAdj", "3"),
+    ("SteerDeltaUpAdj", "3"),
+    ("SteerDeltaDownBaseAdj", "7"),
+    ("SteerDeltaDownAdj", "7"),
+    ("SteerMaxvAdj", "10"),
+    ("OpkrBatteryChargingControl", "1"),
+    ("OpkrBatteryChargingMin", "70"),
+    ("OpkrBatteryChargingMax", "80"),
+    ("DebugUi1", "0"),
+    ("DebugUi2", "0"),
+    ("LongLogDisplay", "0"),
+    ("OpkrBlindSpotDetect", "1"),
+    ("OpkrMaxAngleLimit", "90"),
+    ("OpkrSpeedLimitOffset", "0"),
+    ("OpkrLiveSteerRatio", "1"),
+    ("OpkrVariableSteerMax", "1"),
+    ("OpkrVariableSteerDelta", "0"),
+    ("FingerprintTwoSet", "0"),
+    ("OpkrVariableCruiseProfile", "1"),
+    ("OpkrDrivingRecord", "0"),
+    ("OpkrTurnSteeringDisable", "0"),
+    ("CarModel", ""),
+    ("CarModelAbb", ""),
+    ("OpkrHotspotOnBoot", "0"),
     ("OpkrSSHLegacy", "1"),
+    ("CruiseOverMaxSpeed", "0"),
+    ("JustDoGearD", "0"),
     ("LanelessMode", "0"),
+    ("ComIssueGone", "0"),
+    ("MaxSteer", "408"),
+    ("MaxRTDelta", "112"),
+    ("MaxRateUp", "3"),
+    ("MaxRateDown", "7"),
+    ("SteerThreshold", "150"),
+    ("RecordingCount", "100"),
+    ("RecordingQuality", "1"),
+    ("CruiseGapAdjust", "0"),
+    ("AutoEnable", "1"),
+    ("CruiseAutoRes", "0"),
+    ("AutoResOption", "0"),
+    ("AutoResCondition", "0"),
+    ("SteerWindDown", "0"),
     ("OpkrMonitoringMode", "0"),
+    ("OpkrMonitorEyesThreshold", "45"),
+    ("OpkrMonitorNormalEyesThreshold", "45"),
+    ("OpkrMonitorBlinkThreshold", "35"),
+    ("MadModeEnabled", "1"),
+    ("WhitePandaSupport", "0"),
+    ("SteerWarningFix", "0"),
+    ("OpkrRunNaviOnBoot", "0"),
+    ("CruiseGap1", "10"),
+    ("CruiseGap2", "12"),
+    ("CruiseGap3", "15"),
+    ("CruiseGap4", "20"),
     ("DynamicTR", "2"),
+    ("OpkrBattLess", "0"),
+    ("LCTimingFactorUD", "1"),
+    ("LCTimingFactor30", "10"),
+    ("LCTimingFactor60", "20"),
+    ("LCTimingFactor80", "70"),
+    ("LCTimingFactor110", "100"),
+    ("OpkrUIBrightnessOff", "10"),
+    ("LCTimingFactorEnable", "1"),
+    ("AutoEnableSpeed", "3"),
+    ("SafetyCamDecelDistGain", "0"),
+    ("OpkrLiveTunePanelEnable", "0"),
     ("RadarLongHelper", "1"),
+    ("GitPullOnBoot", "0"),
+    ("LiveSteerRatioPercent", "-5"),
     ("StoppingDistAdj", "0"),
   ]
   if not PC:
@@ -84,6 +169,8 @@ def manager_init():
   if params.get("Passive") is None:
     raise Exception("Passive must be set to continue")
 
+  if EON:
+    update_apks(show_spinner=True)
   # Create folders needed for msgq
   try:
     os.mkdir("/dev/shm")
@@ -119,6 +206,14 @@ def manager_init():
 
   if comma_remote and not (os.getenv("NOLOG") or os.getenv("NOCRASH") or PC):
     crash.init()
+
+  # ensure shared libraries are readable by apks
+  if EON:
+    os.chmod(BASEDIR, 0o755)
+    os.chmod("/dev/shm", 0o777)
+    os.chmod(os.path.join(BASEDIR, "cereal"), 0o755)
+    os.chmod(os.path.join(BASEDIR, "cereal", "libmessaging_shared.so"), 0o755)
+
   crash.bind_user(id=dongle_id)
   crash.bind_extra(dirty=dirty, origin=origin, branch=branch, commit=commit,
                    device=HARDWARE.get_device_type())
@@ -131,6 +226,8 @@ def manager_prepare():
 
 
 def manager_cleanup():
+  if EON:
+    pm_apply_packages('disable')
   for p in managed_processes.values():
     p.stop()
 
@@ -153,6 +250,9 @@ def manager_thread():
     ignore.append("pandad")
   if os.getenv("BLOCK") is not None:
     ignore += os.getenv("BLOCK").split(",")
+
+  if EON:
+    pm_apply_packages('enable')
 
   ensure_running(managed_processes.values(), started=False, not_run=ignore)
 

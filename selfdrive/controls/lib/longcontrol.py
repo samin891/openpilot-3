@@ -56,7 +56,7 @@ def long_control_state_trans(CP, active, long_control_state, v_ego, v_target, v_
 
 
 class LongControl():
-  def __init__(self, CP):
+  def __init__(self, CP, candidate):
     self.long_control_state = LongCtrlState.off  # initialized to off
 
     self.pid = LongPIDController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
@@ -68,7 +68,7 @@ class LongControl():
     self.v_pid = 0.0
     self.last_output_accel = 0.0
 
-    self.long_log = True
+    self.long_log = Params().get_bool("LongLogDisplay")
     self.long_stat = ""
     self.long_plan_source = ""
 
@@ -125,9 +125,12 @@ class LongControl():
 
     v_ego_pid = max(CS.vEgo, CP.minSpeedCan)  # Without this we get jumps, CAN bus reports 0 when speed < 0.3
 
-    if self.long_control_state == LongCtrlState.off or CS.brakePressed or CS.gasPressed:
+    if (self.long_control_state == LongCtrlState.off or (CS.brakePressed or CS.gasPressed)) and self.candidate not in [CAR.NIRO_EV]:
       self.v_pid = v_ego_pid
       self.pid.reset()
+      output_accel = 0.
+    elif self.long_control_state == LongCtrlState.off or CS.gasPressed:
+      self.reset(v_ego_pid)
       output_accel = 0.
 
     # tracking objects and driving

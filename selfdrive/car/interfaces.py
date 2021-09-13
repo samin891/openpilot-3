@@ -10,6 +10,7 @@ from selfdrive.config import Conversions as CV
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX
 from selfdrive.controls.lib.events import Events
 from selfdrive.controls.lib.vehicle_model import VehicleModel
+from common.params import Params
 
 GearShifter = car.CarState.GearShifter
 EventName = car.CarEvent.EventName
@@ -43,6 +44,9 @@ class CarInterfaceBase():
     self.CC = None
     if CarController is not None:
       self.CC = CarController(self.cp.dbc_name, CP, self.VM)
+
+    self.steer_wind_down_enabled = Params().get_bool("SteerWindDown")
+    self.steer_warning_fix_enabled = Params().get_bool("SteerWarningFix")
 
   @staticmethod
   def get_pid_accel_limits(CP, current_speed, cruise_speed):
@@ -134,7 +138,9 @@ class CarInterfaceBase():
     # Handle permanent and temporary steering faults
     if cs_out.steerError:
       events.add(EventName.steerUnavailable)
-    elif cs_out.steerWarning:
+    elif cs_out.steerWarning and (cs_out.vEgo < 0.1 or cs_out.standstill) and not self.steer_wind_down_enabled and cs_out.steeringAngleDeg < 90:
+      events.add(EventName.isgActive)
+    elif cs_out.steerWarning and not self.steer_wind_down_enabled and not self.steer_warning_fix_enabled:
       # only escalate to the harsher alert after the condition has
       # persisted for 0.5s and we're certain that the user isn't overriding
       if self.steering_unpressed > int(0.5/DT_CTRL) and self.steer_warning > int(0.5/DT_CTRL):

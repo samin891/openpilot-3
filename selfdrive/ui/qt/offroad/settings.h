@@ -77,3 +77,9 @@ class UserPanel : public QWidget {
 public:
   explicit UserPanel(QWidget *parent = nullptr);
 };
+
+class TuningPanel : public QWidget {
+  Q_OBJECT
+public:
+  explicit TuningPanel(QWidget *parent = nullptr);
+};

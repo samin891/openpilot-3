@@ -181,7 +181,12 @@ def get_car(logcan, sendcan):
 
   if candidate is None:
     cloudlog.warning("car doesn't match any fingerprints: %r", fingerprints)
-  candidate = "KIA OPTIMA HYBRID 2017 & SPORTS 2019"
+    candidate = "mock"
+  
+  if Params().get("CarModel", encoding="utf8") is not None:
+    car_name = Params().get("CarModel", encoding="utf8")
+    car_name = car_name.rstrip('\n')
+    candidate = car_name
 
   CarInterface, CarController, CarState = interfaces[candidate]
   car_params = CarInterface.get_params(candidate, fingerprints, car_fw)
@@ -190,4 +195,4 @@ def get_car(logcan, sendcan):
   car_params.fingerprintSource = source
   car_params.fuzzyFingerprint = not exact_match
 
-  return CarInterface(car_params, CarController, CarState), car_params
+  return CarInterface(car_params, CarController, CarState), car_params, candidate

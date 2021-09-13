@@ -7,6 +7,7 @@ from opendbc.can.can_define import CANDefine
 from selfdrive.config import Conversions as CV
 from selfdrive.car.hyundai.spdcontroller  import SpdController
 from common.numpy_fast import interp
+from common.params import Params
 
 GearShifter = car.CarState.GearShifter
 
@@ -37,6 +38,9 @@ class CarState(CarStateBase):
 
     self.driverAcc_time = 0
     
+    self.steer_anglecorrection = float(int(Params().get("OpkrSteerAngleCorrection", encoding="utf8")) * 0.1)
+    self.gear_correction = Params().get_bool("JustDoGearD")
+    self.steer_wind_down = Params().get_bool("SteerWindDown")
     self.brake_check = False
     self.cancel_check = False
     self.safety_sign_check = 0
@@ -46,6 +50,7 @@ class CarState(CarStateBase):
     self.safety_block_remain_dist = 0
     self.is_highway = False
     self.on_speed_control = False
+    self.safetycam_decel_dist_gain = int(Params().get("SafetyCamDecelDistGain", encoding="utf8"))
 
   def update(self, cp, cp2, cp_cam):
     cp_mdps = cp2 if self.CP.mdpsBus == 1 else cp
@@ -77,7 +82,7 @@ class CarState(CarStateBase):
     ret.standstill = ret.vEgoRaw < 0.1
     ret.standStill = self.CP.standStill
 
-    ret.steeringAngleDeg = cp_sas.vl["SAS11"]["SAS_Angle"]
+    ret.steeringAngleDeg = cp_sas.vl["SAS11"]["SAS_Angle"] - self.steer_anglecorrection
     ret.steeringRateDeg = cp_sas.vl["SAS11"]["SAS_Speed"]
     ret.yawRate = cp.vl["ESP12"]["YAW_RATE"]
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(
@@ -86,8 +91,11 @@ class CarState(CarStateBase):
     ret.steeringTorqueEps = cp_mdps.vl["MDPS12"]["CR_Mdps_OutTq"]
     ret.steeringPressed = abs(ret.steeringTorque) > STEER_THRESHOLD
 
-    self.mdps_error_cnt += 1 if cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 else -self.mdps_error_cnt
-    ret.steerWarning = self.mdps_error_cnt > 100 #cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0
+    if self.steer_wind_down:
+      ret.steerWarning = cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 or cp_mdps.vl["MDPS12"]["CF_Mdps_ToiFlt"] != 0
+    else:
+      self.mdps_error_cnt += 1 if cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 else -self.mdps_error_cnt
+      ret.steerWarning = self.mdps_error_cnt > 100 #cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0
 
     self.VSetDis = cp_scc.vl["SCC11"]["VSetDis"]
     ret.vSetDis = self.VSetDis
@@ -214,7 +222,7 @@ class CarState(CarStateBase):
 
     cam_distance_calc = interp(ret.vEgo*CV.MS_TO_KPH, [30,110], [2.8,4.0])
     consider_speed = interp((ret.vEgo*CV.MS_TO_KPH - self.safety_sign), [0,50], [1, 2.25])
-    final_cam_decel_start_dist = cam_distance_calc*consider_speed*ret.vEgo*CV.MS_TO_KPH
+    final_cam_decel_start_dist = cam_distance_calc*consider_speed*ret.vEgo*CV.MS_TO_KPH * (1 + self.safetycam_decel_dist_gain*0.01)
     if self.safety_sign > 29 and self.safety_dist < final_cam_decel_start_dist:
       ret.safetySign = self.safety_sign
       ret.safetyDist = self.safety_dist
@@ -248,14 +256,17 @@ class CarState(CarStateBase):
       gear = cp.vl["LVR12"]["CF_Lvr_Gear"]
       ret.electGearStep = 0
 
-    ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
-
-    if self.CP.carFingerprint in FEATURES["use_fca"]:
-      ret.stockAeb = cp.vl["FCA11"]["FCA_CmdAct"] != 0
-      ret.stockFcw = cp.vl["FCA11"]["CF_VSM_Warn"] == 2
+    if self.gear_correction:
+      ret.gearShifter = GearShifter.drive
     else:
-      ret.stockAeb = cp.vl["SCC12"]["AEB_CmdAct"] != 0
-      ret.stockFcw = cp.vl["SCC12"]["CF_VSM_Warn"] == 2
+      ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
+
+    if self.CP.fcaBus != -1 or self.CP.carFingerprint in FEATURES["use_fca"] or self.fca_type:
+      ret.stockAeb = cp_fca.vl["FCA11"]["FCA_CmdAct"] != 0
+      ret.stockFcw = cp_fca.vl["FCA11"]["CF_VSM_Warn"] == 2
+    elif not self.CP.radarOffCan:
+      ret.stockAeb = cp_scc.vl["SCC12"]["AEB_CmdAct"] != 0
+      ret.stockFcw = cp_scc.vl["SCC12"]["CF_VSM_Warn"] == 2
 
     # Blind Spot Detection and Lane Change Assist signals
     if self.CP.bsmAvailable or self.CP.enableBsm:

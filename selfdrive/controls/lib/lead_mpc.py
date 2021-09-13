@@ -8,6 +8,7 @@ from selfdrive.controls.lib.lead_mpc_lib import libmpc_py
 from selfdrive.controls.lib.drive_helpers import MPC_COST_LONG, CONTROL_N
 from selfdrive.swaglog import cloudlog
 from common.params import Params
+from decimal import Decimal
 
 MPC_T = list(np.arange(0,1.,.2)) + list(np.arange(1.,10.6,.6))
 
@@ -30,10 +31,10 @@ class LeadMpc():
     self.a_solution = np.zeros(CONTROL_N)
     self.j_solution = np.zeros(CONTROL_N)
 
-    self.cruise_gap1 = 1.0
-    self.cruise_gap2 = 1.35
-    self.cruise_gap3 = 1.6
-    self.cruise_gap4 = 2.0
+    self.cruise_gap1 = float(Decimal(Params().get("CruiseGap1", encoding="utf8")) * Decimal('0.1'))
+    self.cruise_gap2 = float(Decimal(Params().get("CruiseGap2", encoding="utf8")) * Decimal('0.1'))
+    self.cruise_gap3 = float(Decimal(Params().get("CruiseGap3", encoding="utf8")) * Decimal('0.1'))
+    self.cruise_gap4 = float(Decimal(Params().get("CruiseGap4", encoding="utf8")) * Decimal('0.1'))
 
     self.dynamic_TR = 0
     self.dynamic_TR_mode = int(Params().get("DynamicTR", encoding="utf8"))

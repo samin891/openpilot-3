@@ -592,7 +592,7 @@ int main() {
     threads.push_back(std::thread(can_send_thread));
     threads.push_back(std::thread(can_recv_thread));
     threads.push_back(std::thread(hardware_control_thread));
-    threads.push_back(std::thread(pigeon_thread));
+    if (!Params().getBool("WhitePandaSupport")) threads.push_back(std::thread(pigeon_thread));
 
     for (auto &t : threads) t.join();
 

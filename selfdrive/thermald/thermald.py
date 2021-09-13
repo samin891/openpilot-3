@@ -198,12 +198,23 @@ def thermald_thread():
 
   # sound trigger
   sound_trigger = 1
+  opkrAutoShutdown = 0
 
   shutdown_trigger = 1
   is_openpilot_view_enabled = 0
 
   env = dict(os.environ)
   env['LD_LIBRARY_PATH'] = mediaplayer
+
+  getoff_alert = params.get_bool("OpkrEnableGetoffAlert")
+
+  hotspot_on_boot = params.get_bool("OpkrHotspotOnBoot")
+  hotspot_run = False
+
+  opkrAutoShutdown = interp(int(params.get("OpkrAutoShutdown", encoding="utf8")), [0,1,2,3,4,5,6,7,8,9], [0,5,30,60,180,300,600,1800,3600,10800])
+  battery_charging_control = params.get_bool("OpkrBatteryChargingControl")
+  battery_charging_min = int(params.get("OpkrBatteryChargingMin", encoding="utf8"))
+  battery_charging_max = int(params.get("OpkrBatteryChargingMax", encoding="utf8"))
 
   is_openpilot_dir = True
 
@@ -430,18 +441,31 @@ def thermald_thread():
       if off_ts is None:
         off_ts = sec_since_boot()
 
-      if shutdown_trigger == 1 and sound_trigger == 1 and msg.deviceState.batteryStatus == "Discharging" and started_seen and (sec_since_boot() - off_ts) > 1:
+      if shutdown_trigger == 1 and sound_trigger == 1 and msg.deviceState.batteryStatus == "Discharging" and started_seen and (sec_since_boot() - off_ts) > 1 and getoff_alert:
         subprocess.Popen([mediaplayer + 'mediaplayer', '/data/openpilot/selfdrive/assets/addon/sound/eondetach.wav'], shell = False, stdin=None, stdout=None, stderr=None, env = env, close_fds=True)
         sound_trigger = 0
       # shutdown if the battery gets lower than 3%, it's discharging, we aren't running for
       # more than a minute but we were running
       if shutdown_trigger == 1 and msg.deviceState.batteryStatus == "Discharging" and \
-         started_seen and (sec_since_boot() - off_ts) > 30 and not os.path.isfile(pandaflash_ongoing):
+         started_seen and opkrAutoShutdown and (sec_since_boot() - off_ts) > opkrAutoShutdown and not os.path.isfile(pandaflash_ongoing):
         os.system('LD_LIBRARY_PATH="" svc power shutdown')
+
+      if (count % int(1. / DT_TRML)) == 0:
+        if int(params.get("OpkrForceShutdown", encoding="utf8")) != 0 and not started_seen and msg.deviceState.batteryStatus == "Discharging":
+          opkrForceShutdown = interp(int(params.get("OpkrForceShutdown", encoding="utf8")), [0,1,2,3,4,5], [0,60,180,300,600,1800])
+          if (sec_since_boot() - off_ts) > opkrForceShutdown and opkrForceShutdown and params.get_bool("OpkrForceShutdownTrigger"):
+            os.system('LD_LIBRARY_PATH="" svc power shutdown')
+          elif not params.get_bool("OpkrForceShutdownTrigger"):
+            off_ts = sec_since_boot()
+        elif msg.deviceState.batteryPercent < 10 and not started_seen and msg.deviceState.batteryStatus == "Discharging":
+          os.system('LD_LIBRARY_PATH="" svc power shutdown')
+
 
     # opkr
     prebuiltlet = params.get_bool("PutPrebuiltOn")
     if not os.path.isdir("/data/openpilot"):
+      if is_openpilot_dir:
+        os.system("cd /data/params/d; rm -f DongleId") # Delete DongleID if the Openpilot directory disappears, Seems you want to switch fork/branch.
       is_openpilot_dir = False
     elif not os.path.isfile(prebuiltfile) and prebuiltlet and is_openpilot_dir:
       os.system("cd /data/openpilot; touch prebuilt")
@@ -454,6 +478,11 @@ def thermald_thread():
       os.system("cp -f /data/openpilot/selfdrive/assets/addon/key/GithubSshKeys_legacy /data/params/d/GithubSshKeys; chmod 600 /data/params/d/GithubSshKeys; touch /data/public_key")
     elif os.path.isfile(sshkeyfile) and not sshkeylet:
       os.system("cp -f /data/openpilot/selfdrive/assets/addon/key/GithubSshKeys_new /data/params/d/GithubSshKeys; chmod 600 /data/params/d/GithubSshKeys; rm -f /data/public_key")
+
+    # opkr hotspot
+    if hotspot_on_boot and not hotspot_run and sec_since_boot() > 80:
+      os.system("service call wifi 37 i32 0 i32 1 &")
+      hotspot_run = True
 
     # Offroad power monitoring
     power_monitor.calculate(pandaState)
@@ -496,8 +525,8 @@ def thermald_thread():
     startup_conditions_prev = startup_conditions.copy()
 
     # atom
-    if usb_power:
-      power_monitor.charging_ctrl(msg, ts, 80, 70)    
+    if usb_power and battery_charging_control:
+      power_monitor.charging_ctrl( msg, ts, battery_charging_max, battery_charging_min )
 
     # report to server once every 10 minutes
     if (count % int(600. / DT_TRML)) == 0:

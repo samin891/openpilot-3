@@ -79,9 +79,13 @@ const int CONTROLS_TIMEOUT = 5;
 const int bdr_s = 15;
 const int header_h = 420;
 const int footer_h = 280;
+const Rect map_overlay_btn = {0, 465, 150, 150};
+const Rect map_return_btn = {1770, 465, 150, 150};
+const Rect map_btn = {1425, 905, 140, 140};
 const Rect rec_btn = {1745, 905, 140, 140};
 const Rect laneless_btn = {1585, 905, 140, 140};
 const Rect monitoring_btn = {50, 830, 140, 140};
+const Rect ml_btn = {1265, 905, 140, 140};
 const Rect stockui_btn = {15, 15, 184, 202};
 const Rect tuneui_btn = {1720, 15, 184, 202};
 const Rect livetunepanel_left_btn = {500, 750, 170, 160};
@@ -127,6 +131,11 @@ typedef struct UIScene {
   bool brakePress;
   bool recording = false;
   bool touched = false;
+  bool map_on_top = false;
+  bool map_on_overlay = false;
+  bool map_is_running = false;
+  bool move_to_background = false;
+  bool navi_on_boot = false;
 
   float gpsAccuracyUblox;
   float altitudeUblox;
@@ -135,6 +144,7 @@ typedef struct UIScene {
   int cpuPerc;
   float cpuTemp;
   float batTemp;
+  float ambientTemp;
   float batPercent;
   bool rightblindspot;
   bool leftblindspot;
@@ -161,41 +171,46 @@ typedef struct UIScene {
   bool standStill;
   float limitSpeedCamera;
   float limitSpeedCameraDist;
+  float mapSign;
   float vSetDis;
   bool cruiseAccStatus;
   int laneless_mode;
-  int recording_count = 300;
-  int recording_quality = 2; // 0-3, low-ultra
-  int speed_lim_off = 5;
+  int recording_count;
+  int recording_quality;
+  float steerMax_V;
+  int speed_lim_off;
   bool monitoring_mode;
-  bool comma_stock_ui;
+  int setbtn_count = 0;
+  int homebtn_count = 0;
+  bool forceGearD;
+  bool comma_stock_ui, opkr_livetune_ui;
   bool is_OpenpilotViewEnabled = false;
-  bool driving_record = false;
+  bool driving_record;
   float steer_actuator_delay;
+  bool batt_less;
   int cruise_gap;
   int dynamic_tr_mode;
   float dynamic_tr_value;
   bool touched2 = false;
-  int brightness_off = 10;
-  int brightness = 0; // fixed manual brightness
-  int nTime, awake;
-  int autoScreenOff = -1;  // -2:notuse, -1:15sec, 0:30sec, 1:1min
-  bool read_params_once = false;
-  bool nDebugUi1;
-  bool nDebugUi2;
-  bool nOpkrBlindSpotDetect = true;
-  bool is_speed_over_limit = false;
-  bool controlAllowed;
-
-  // live tune
-  bool opkr_livetune_ui;
+  int brightness_off;
   int cameraOffset, pathOffset, osteerRateCost;
   int pidKp, pidKi, pidKd, pidKf;
   int indiInnerLoopGain, indiOuterLoopGain, indiTimeConstant, indiActuatorEffectiveness;
   int lqrScale, lqrKi, lqrDcGain;
   bool live_tune_panel_enable;
+  bool kr_date_show;
+  bool kr_time_show;
   int live_tune_panel_list = 0;
   int list_count = 3;
+  int nTime, autoScreenOff, brightness, awake;
+  int nVolumeBoost = 0;
+  bool read_params_once = false;
+  bool nDebugUi1;
+  bool nDebugUi2;
+  bool nOpkrBlindSpotDetect;
+  bool auto_gitpull = false;
+  bool is_speed_over_limit = false;
+  bool controlAllowed;
 
   cereal::DeviceState::Reader deviceState;
   cereal::RadarState::LeadData::Reader lead_data[2];
@@ -203,6 +218,7 @@ typedef struct UIScene {
   cereal::ControlsState::Reader controls_state;
   cereal::CarState::GearShifter getGearShifter;
   cereal::LateralPlan::Reader lateral_plan;
+  cereal::LiveMapData::Reader live_map_data;
 
   // gps
   int satelliteCount;
@@ -248,6 +264,15 @@ typedef struct UIScene {
     bool lanelessModeStatus;
   } lateralPlan;
 
+  struct _LiveMapData
+  {
+    float opkrspeedlimit;
+    float opkrspeedlimitdist;
+    float opkrspeedsign;
+    float opkrcurveangle;
+    float opkrturninfo;
+    float opkrdisttoturn;
+  } liveMapData;
 } UIScene;
 
 typedef struct UIState {

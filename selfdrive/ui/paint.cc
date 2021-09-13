@@ -146,7 +146,8 @@ static void ui_draw_vision_lane_lines(UIState *s) {
   const UIScene &scene = s->scene;
   NVGpaint track_bg;
   int steerOverride = scene.car_state.getSteeringPressed();
-  int torque_scale = (int)fabs(255*(float)scene.output_scale);
+  float steer_max_v = scene.steerMax_V - (1.5 * (scene.steerMax_V - 0.9));
+  int torque_scale = (int)fabs(255*(float)scene.output_scale*steer_max_v);
   int red_lvl = fmin(255, torque_scale);
   int green_lvl = fmin(255, 255-torque_scale);
 
@@ -340,8 +341,23 @@ static void ui_draw_debug(UIState *s) {
     ui_print(s, ui_viz_rx, ui_viz_ry+400, "SC:%.2f", scene.lateralPlan.steerRateCost);
     ui_print(s, ui_viz_rx, ui_viz_ry+440, "OS:%.2f", abs(scene.output_scale));
     ui_print(s, ui_viz_rx, ui_viz_ry+480, "%.2f|%.2f", scene.lateralPlan.lProb, scene.lateralPlan.rProb);
+    //ui_print(s, ui_viz_rx, ui_viz_ry+800, "A:%.5f", scene.accel_sensor2);
+    if (scene.map_is_running) {
+      if (scene.liveMapData.opkrspeedsign) ui_print(s, ui_viz_rx, ui_viz_ry+520, "SS:%.0f", scene.liveMapData.opkrspeedsign);
+      if (scene.liveMapData.opkrspeedlimit) ui_print(s, ui_viz_rx, ui_viz_ry+560, "SL:%.0f", scene.liveMapData.opkrspeedlimit);
+      if (scene.liveMapData.opkrspeedlimitdist) ui_print(s, ui_viz_rx, ui_viz_ry+600, "DS:%.0f", scene.liveMapData.opkrspeedlimitdist);
+      if (scene.liveMapData.opkrturninfo) ui_print(s, ui_viz_rx, ui_viz_ry+640, "TI:%.0f", scene.liveMapData.opkrturninfo);
+      if (scene.liveMapData.opkrdisttoturn) ui_print(s, ui_viz_rx, ui_viz_ry+680, "DT:%.0f", scene.liveMapData.opkrdisttoturn);
+    }
     nvgFontSize(s->vg, 37);
     nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+    if (scene.lateralControlMethod == 0) {
+      ui_print(s, ui_viz_rx_center, ui_viz_ry+305, "PID");
+    } else if (scene.lateralControlMethod == 1) {
+      ui_print(s, ui_viz_rx_center, ui_viz_ry+305, "INDI");
+    } else if (scene.lateralControlMethod == 2) {
+      ui_print(s, ui_viz_rx_center, ui_viz_ry+305, "LQR");
+    }
   }
 }
 
@@ -591,6 +607,11 @@ static void ui_draw_vision_event(UIState *s) {
     else if (s->scene.limitSpeedCamera < 110) {ui_draw_image(s, {img_speedlimit_x, img_speedlimit_y, img_speedlimit_size, img_speedlimit_size}, "speed_100", img_speedlimit_alpha);}
     else if (s->scene.limitSpeedCamera < 120) {ui_draw_image(s, {img_speedlimit_x, img_speedlimit_y, img_speedlimit_size, img_speedlimit_size}, "speed_110", img_speedlimit_alpha);}
   }
+  if ((s->scene.mapSign == 195 || s->scene.mapSign == 197) && s->scene.limitSpeedCamera == 0 && s->scene.limitSpeedCameraDist != 0 && !s->scene.comma_stock_ui) {
+    ui_draw_image(s, {s->fb_w/2 - 500/2, s->fb_h/2 - 500/2, 500, 500}, "speed_var", 0.25f);
+  } else if (s->scene.liveMapData.opkrspeedsign == 124 && s->scene.limitSpeedCamera == 0 && s->scene.limitSpeedCameraDist == 0 && !s->scene.comma_stock_ui) {
+    ui_draw_image(s, {s->fb_w/2 - 500/2, s->fb_h/2 - 500/2, 500, 500}, "speed_bump", 0.35f);
+  }
   
   //draw compass by opkr
   if (s->scene.gpsAccuracyUblox != 0.00 && !s->scene.comma_stock_ui) {
@@ -608,7 +629,7 @@ static void ui_draw_vision_event(UIState *s) {
   const int bg_wheel_y = viz_event_y + (bg_wheel_size/2);
   const QColor &color = bg_colors[s->status];
   NVGcolor nvg_color = nvgRGBA(color.red(), color.green(), color.blue(), color.alpha());
-  if (s->scene.controls_state.getEnabled() || s->scene.comma_stock_ui) {
+  if (s->scene.controls_state.getEnabled() || s->scene.forceGearD || s->scene.comma_stock_ui) {
     float angleSteers = s->scene.car_state.getSteeringAngleDeg();
     if (s->scene.controlAllowed) {
       ui_draw_circle_image_rotation(s, bg_wheel_x, bg_wheel_y+20, bg_wheel_size, "wheel", nvg_color, 1.0f, angleSteers);
@@ -695,8 +716,29 @@ static void bb_ui_draw_measures_left(UIState *s, int bb_x, int bb_y, int bb_w ) 
         value_fontSize, label_fontSize, uom_fontSize );
     bb_ry = bb_y + bb_h;
   }
+  //DEVICE TEMP
+  if (scene.batt_less) {
+    //char val_str[16];
+    char uom_str[6];
+    std::string device_temp_val = std::to_string(int(scene.ambientTemp)) + "°C";
+    NVGcolor val_color = COLOR_WHITE_ALPHA(200);
+    if(scene.ambientTemp > 45) {
+      val_color = nvgRGBA(255, 188, 3, 200);
+    }
+    if(scene.ambientTemp > 50) {
+      val_color = nvgRGBA(255, 0, 0, 200);
+    }
+    // temp is alway in C * 1000
+    //snprintf(val_str, sizeof(val_str), "%.0fC", batteryTemp);
+    snprintf(uom_str, sizeof(uom_str), "%d", (scene.fanSpeed)/1000);
+    bb_h +=bb_ui_draw_measure(s, device_temp_val.c_str(), uom_str, "시스템온도",
+        bb_rx, bb_ry, bb_uom_dx,
+        val_color, lab_color, uom_color,
+        value_fontSize, label_fontSize, uom_fontSize );
+    bb_ry = bb_y + bb_h;
+  }
   //BAT TEMP
-  if (true) {
+  if (!scene.batt_less) {
     //char val_str[16];
     char uom_str[6];
     std::string bat_temp_val = std::to_string(int(scene.batTemp)) + "°C";
@@ -717,7 +759,7 @@ static void bb_ui_draw_measures_left(UIState *s, int bb_x, int bb_y, int bb_w ) 
     bb_ry = bb_y + bb_h;
   }
   //BAT LEVEL
-  if(true) {
+  if(!scene.batt_less) {
     //char val_str[16];
     char uom_str[6];
     std::string bat_level_val = std::to_string(int(scene.batPercent)) + "%";
@@ -949,6 +991,29 @@ static void bb_ui_draw_UI(UIState *s) {
   bb_ui_draw_measures_left(s, bb_dmr_x, bb_dmr_y-20, bb_dmr_w);
 }
 
+static void draw_navi_button(UIState *s) {
+  int btn_w = 140;
+  int btn_h = 140;
+  int btn_x1 = s->fb_w - btn_w - 355;
+  int btn_y = 1080 - btn_h - 35;
+  int btn_xc1 = btn_x1 + (btn_w/2);
+  int btn_yc = btn_y + (btn_h/2);
+  nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+  nvgBeginPath(s->vg);
+  nvgRoundedRect(s->vg, btn_x1, btn_y, btn_w, btn_h, 100);
+  nvgStrokeColor(s->vg, nvgRGBA(255,255,255,80));
+  nvgStrokeWidth(s->vg, 6);
+  nvgStroke(s->vg);
+  nvgFontSize(s->vg, 45);
+  if (s->scene.map_is_running) {
+    NVGcolor fillColor = nvgRGBA(0,0,255,80);
+    nvgFillColor(s->vg, fillColor);
+    nvgFill(s->vg);
+  }
+  nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
+  nvgText(s->vg,btn_xc1,btn_yc,"NAVI",NULL);
+}
+
 static void draw_laneless_button(UIState *s) {
   int btn_w = 140;
   int btn_h = 140;
@@ -994,6 +1059,7 @@ static void ui_draw_vision_header(UIState *s) {
   if (!s->scene.comma_stock_ui) {
     bb_ui_draw_UI(s);
     ui_draw_tpms(s);
+    draw_navi_button(s);
   }
   if (s->scene.end_to_end && !s->scene.comma_stock_ui) {
     draw_laneless_button(s);
@@ -1083,7 +1149,13 @@ void draw_kr_date_time(UIState *s) {
     strcpy(dayofweek, "SAT");
   }
 
-  snprintf(now,sizeof(now),"%04d-%02d-%02d %s %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, dayofweek, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  if (s->scene.kr_date_show && s->scene.kr_time_show) {
+    snprintf(now,sizeof(now),"%04d-%02d-%02d %s %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, dayofweek, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  } else if (s->scene.kr_date_show) {
+    snprintf(now,sizeof(now),"%04d-%02d-%02d %s", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, dayofweek);
+  } else if (s->scene.kr_time_show) {
+    snprintf(now,sizeof(now),"%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+  }
 
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_TOP);
   nvgBeginPath(s->vg);
@@ -1221,7 +1293,7 @@ static void ui_draw_vision(UIState *s) {
   if (scene->live_tune_panel_enable) {
     ui_draw_live_tune_panel(s);
   }
-  if (!scene->comma_stock_ui) {
+  if ((scene->kr_date_show || scene->kr_time_show) && !scene->comma_stock_ui) {
     draw_kr_date_time(s);
   }
 }
@@ -1299,6 +1371,8 @@ void ui_nvg_init(UIState *s) {
     {"speed_90", "../assets/addon/img/img_90_speedahead.png"},
     {"speed_100", "../assets/addon/img/img_100_speedahead.png"},
     {"speed_110", "../assets/addon/img/img_110_speedahead.png"},
+    {"speed_var", "../assets/addon/img/img_var_speedahead.png"},
+    {"speed_bump", "../assets/addon/img/img_speed_bump.png"},
     {"car_left", "../assets/addon/img/img_car_left.png"},
     {"car_right", "../assets/addon/img/img_car_right.png"},
     {"compass", "../assets/addon/img/img_compass.png"},

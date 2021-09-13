@@ -1,6 +1,7 @@
 import crcmod
 from common.numpy_fast import clip
-from selfdrive.car.hyundai.values import CAR, CHECKSUM
+from selfdrive.car.hyundai.values import CAR, CHECKSUM, FEATURES
+from common.params import Params
 
 hyundai_checksum = crcmod.mkCrcFun(0x11D, initCrc=0xFD, rev=False, xorOut=0xdf)
 
@@ -8,7 +9,7 @@ hyundai_checksum = crcmod.mkCrcFun(0x11D, initCrc=0xFD, rev=False, xorOut=0xdf)
 def create_lkas11(packer, frame, car_fingerprint, apply_steer, steer_req,
                   steer_wind_down, lkas11, sys_warning, sys_state, enabled,
                   left_lane, right_lane,
-                  left_lane_depart, right_lane_depart, bus, steerwinddown_enabled):
+                  left_lane_depart, right_lane_depart, bus, ldws, steerwinddown_enabled):
   values = lkas11
   values["CF_Lkas_LdwsSysState"] = sys_state
   values["CF_Lkas_SysWarning"] = 3 if sys_warning else 0
@@ -19,9 +20,7 @@ def create_lkas11(packer, frame, car_fingerprint, apply_steer, steer_req,
   values["CF_Lkas_ToiFlt"] = steer_wind_down if steerwinddown_enabled else 0
   values["CF_Lkas_MsgCount"] = frame % 0x10
 
-  if car_fingerprint in [CAR.SONATA, CAR.PALISADE, CAR.KIA_NIRO_EV, CAR.KIA_NIRO_HEV_2021, CAR.SANTA_FE,
-                         CAR.IONIQ_EV_2020, CAR.IONIQ_PHEV, CAR.KIA_SELTOS, CAR.ELANTRA_2021,
-                         CAR.ELANTRA_HEV_2021, CAR.SONATA_HYBRID, CAR.KONA_EV, CAR.KONA_HEV]:
+  if car_fingerprint in FEATURES["send_lfahda_mfa"]:
     values["CF_Lkas_LdwsActivemode"] = int(left_lane) + (int(right_lane) << 1)
     values["CF_Lkas_LdwsOpt_USM"] = 2
 
@@ -39,12 +38,16 @@ def create_lkas11(packer, frame, car_fingerprint, apply_steer, steer_req,
     # Note: the warning is hidden while the blinkers are on
     values["CF_Lkas_SysWarning"] = 4 if sys_warning else 0
 
-  elif car_fingerprint == CAR.HYUNDAI_GENESIS:
+  elif car_fingerprint == CAR.GENESIS:
     # This field is actually LdwsActivemode
     # Genesis and Optima fault when forwarding while engaged
     values["CF_Lkas_LdwsActivemode"] = 2
-  elif car_fingerprint == CAR.KIA_OPTIMA:
+
+  elif car_fingerprint in [CAR.K5, CAR.K5_HEV, CAR.K7, CAR.K7_HEV]:
     values["CF_Lkas_LdwsActivemode"] = 0
+
+  if ldws:
+  	values["CF_Lkas_LdwsOpt_USM"] = 3
 
   dat = packer.make_can_msg("LKAS11", 0, values)[2]
 
@@ -81,7 +84,7 @@ def create_lfahda_mfc(packer, enabled, hda_set_speed=0):
   }
   return packer.make_can_msg("LFAHDA_MFC", 0, values)
 
-def create_scc11(packer, frame, set_speed, lead_visible, scc_live, lead_dist, lead_vrel, lead_yrel, speed, standstill, scc11):
+def create_scc11(packer, frame, set_speed, lead_visible, scc_live, lead_dist, lead_vrel, lead_yrel, car_fingerprint, speed, standstill, scc11):
   values = scc11
   values["AliveCounterACC"] = frame // 2 % 0x10
   if not scc_live:
@@ -100,10 +103,15 @@ def create_scc11(packer, frame, set_speed, lead_visible, scc_live, lead_dist, le
 
   return packer.make_can_msg("SCC11", 0, values)
 
-def create_scc12(packer, accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, speed, stopping, scc12):
+def create_scc12(packer, accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, car_fingerprint, speed, stopping, scc12):
   values = scc12
   if not aebcmdact:
-    if enabled and not brakepressed:
+    if enabled and car_fingerprint in [CAR.NIRO_EV]:
+      values["ACCMode"] = 2 if gaspressed and (accel > -0.2) else 1
+      values["aReqRaw"] = accel
+      values["aReqValue"] = accel
+      values["StopReq"] = 1 if stopping else 0
+    elif enabled and not brakepressed:
       values["ACCMode"] = 2 if gaspressed and (accel > -0.2) else 1
       values["aReqRaw"] = accel
       values["aReqValue"] = accel
@@ -125,9 +133,23 @@ def create_scc13(packer, scc13):
   values = scc13
   return packer.make_can_msg("SCC13", 0, values)
 
-def create_scc14(packer, enabled, scc14, aebcmdact, lead_visible, lead_dist, v_ego, standstill, jerk, stopping, objdiststat):
+def create_scc14(packer, enabled, scc14, aebcmdact, lead_visible, lead_dist, v_ego, standstill, car_fingerprint, jerk, stopping, objdiststat):
   values = scc14
-  if enabled and not aebcmdact:
+  if enabled and not aebcmdact and car_fingerprint in [CAR.NIRO_EV]:
+    if standstill:
+      values["JerkUpperLimit"] = 0.5
+      values["JerkLowerLimit"] = 10.
+      values["ComfortBandUpper"] = 0.
+      values["ComfortBandLower"] = 0.
+      if v_ego > 0.27:
+        values["ComfortBandUpper"] = 2.
+        values["ComfortBandLower"] = 0.
+    else:
+      values["JerkUpperLimit"] = 50.
+      values["JerkLowerLimit"] = 50.
+      values["ComfortBandUpper"] = 50.
+      values["ComfortBandLower"] = 50.
+  elif enabled and not aebcmdact:
     values["JerkUpperLimit"] = max(jerk, 1.0) if not stopping else 0
     values["JerkLowerLimit"] = max(-jerk, 1.0)
     values["ComfortBandUpper"] = 0
@@ -162,3 +184,6 @@ def create_mdps12(packer, frame, mdps12):
   values["CF_Mdps_Chksum2"] = checksum
 
   return packer.make_can_msg("MDPS12", 2, values)
+
+def create_scc7d0(cmd):
+  return[2000, 0, cmd, 0]

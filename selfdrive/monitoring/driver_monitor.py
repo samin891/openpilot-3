@@ -8,6 +8,7 @@ from common.filter_simple import FirstOrderFilter
 from common.stat_live import RunningStatFilter
 
 from common.params import Params
+from decimal import Decimal
 
 EventName = car.CarEvent.EventName
 
@@ -19,11 +20,13 @@ EventName = car.CarEvent.EventName
 
 class DRIVER_MONITOR_SETTINGS():
   def __init__(self, TICI=TICI, DT_DMON=DT_DMON):
+    self.EnableDriverMonitoring = Params().get_bool("OpkrEnableDriverMonitoring")
+
     self._DT_DMON = DT_DMON
     self._AWARENESS_TIME = 30000. # passive wheeltouch total timeout
     self._AWARENESS_PRE_TIME_TILL_TERMINAL = 12.
     self._AWARENESS_PROMPT_TIME_TILL_TERMINAL = 6.
-    self._DISTRACTED_TIME = 11. # active monitoring total timeout
+    self._DISTRACTED_TIME = 11. if self.EnableDriverMonitoring else 30000. # active monitoring total timeout
     self._DISTRACTED_PRE_TIME_TILL_TERMINAL = 8.
     self._DISTRACTED_PROMPT_TIME_TILL_TERMINAL = 6.
 
@@ -132,9 +135,9 @@ class DriverStatus():
     self.threshold_pre = self.settings._DISTRACTED_PRE_TIME_TILL_TERMINAL / self.settings._DISTRACTED_TIME
     self.threshold_prompt = self.settings._DISTRACTED_PROMPT_TIME_TILL_TERMINAL / self.settings._DISTRACTED_TIME
 
-    self.MonitorEyesThreshold = 0.45
-    self.NormalEyesThreshold = 0.45
-    self.BlinkThreshold = 0.35
+    self.MonitorEyesThreshold = float(Decimal(Params().get("OpkrMonitorEyesThreshold", encoding="utf8")) * Decimal('0.01'))
+    self.NormalEyesThreshold = float(Decimal(Params().get("OpkrMonitorNormalEyesThreshold", encoding="utf8")) * Decimal('0.01'))
+    self.BlinkThreshold = float(Decimal(Params().get("OpkrMonitorBlinkThreshold", encoding="utf8")) * Decimal('0.01'))
 
     self.monitoring_mode = Params().get_bool("OpkrMonitoringMode")
     self.second1 = 0.0

@@ -99,11 +99,14 @@ class SpdController():
         self.curvature_gain = 1
 
         self.params = Params()
-        self.cruise_set_mode = 3
-        self.map_spd_limit_offset = 5
+        self.cruise_set_mode = int(self.params.get("CruiseStatemodeSelInit", encoding="utf8"))
+        self.map_spd_limit_offset = int(self.params.get("OpkrSpeedLimitOffset", encoding="utf8"))
 
         self.map_spd_enable = False
         self.map_spd_camera = 0
+        self.map_enabled = False
+        self.second = 0
+        self.sm = messaging.SubMaster(['liveMapData'])
 
     def reset(self):
         self.v_model = 0
@@ -248,15 +251,17 @@ class SpdController():
     @staticmethod
     def get_lead(sm):
         plan = sm['longitudinalPlan']
-        if 0 < plan.dRel < 149:
-            dRel = int(plan.dRel) #EON Lead
-            vRel = int(plan.vRel * 3.6 + 0.5) #EON Lead
+        if 0 < plan.dRel1 < 149:
+            dRel = int(plan.dRel1) #EON Lead
+            yRel = int(plan.yRel1) #EON Lead
+            vRel = int(plan.vRel1 * 3.6 + 0.5) #EON Lead
         else:
             dRel = 150
+            yRel = 0
             vRel = 0
 
 
-        return dRel, vRel
+        return dRel, yRel, vRel
 
 
 
@@ -292,6 +297,7 @@ class SpdController():
 
     def lead_control(self, CS, sm, CC):
         dRel = CC.dRel
+        yRel = CC.yRel
         vRel = CC.vRel
         active_time = 10
         btn_type = Buttons.NONE
@@ -304,7 +310,7 @@ class SpdController():
 
 
         # 선행 차량 거리유지
-        lead_wait_cmd, lead_set_speed = self.update_lead( sm, CS, dRel, vRel, CC)
+        lead_wait_cmd, lead_set_speed = self.update_lead( sm, CS, dRel, yRel, vRel, CC)
 
         # 커브 감속.
         curve_speed = CC.curve_speed   #cal_curve_speed(sm, CS.out.vEgo)
@@ -333,8 +339,18 @@ class SpdController():
         delta = int(round(set_speed)) - int(CS.VSetDis)
         dec_step_cmd = 1
 
-        self.map_spd_camera = CS.out.safetySign
-        self.map_spd_enable = True if self.map_spd_camera > 29. else False
+        self.second += 1
+        if self.second > 200:
+            self.map_enabled = Params().get_bool("OpkrMapEnable")
+            self.second = 0
+
+        if self.map_enabled:
+            self.sm.update(0)
+            self.map_spd_camera = float(self.sm['liveMapData'].speedLimit)
+            self.map_spd_enable = True if self.map_spd_camera > 29 else False
+        else:
+            self.map_spd_camera = CS.out.safetySign
+            self.map_spd_enable = True if self.map_spd_camera > 29. else False
 
         if self.long_curv_timer < long_wait_cmd:
             pass

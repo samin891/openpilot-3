@@ -3,6 +3,7 @@
 #include <QFontDatabase>
 
 #include "selfdrive/hardware/hw.h"
+#include "selfdrive/common/params.h"
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   main_layout = new QStackedLayout(this);
@@ -43,6 +44,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   });
   QObject::connect(&device, &Device::displayPowerChanged, [=]() {
      if(main_layout->currentWidget() != onboardingWindow) {
+       Params().putBool("OpkrForceShutdownTrigger", true);
        closeSettings();
      }
   });
@@ -78,6 +80,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
   // wake screen on tap
   if (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::TouchBegin) {
     device.setAwake(true, true);
+    Params().putBool("OpkrForceShutdownTrigger", false);
   }
 
 #ifdef QCOM
