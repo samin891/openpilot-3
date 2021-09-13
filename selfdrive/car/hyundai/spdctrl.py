@@ -116,7 +116,7 @@ class Spdctrl(SpdController):
         elif CS.CP.resSpeed != 0 and CS.CP.resSpeed < int(CS.VSetDis):
             self.seq_step_debug = 2
             lead_wait_cmd, lead_set_speed = self.get_tm_speed(CS, 8, -1)
-        elif CS.out.cruiseState.modeSel in [1,2,4] and d_delta < 0 or d_delta2 < 0 and not self.map_decel_only
+        elif CS.out.cruiseState.modeSel in [1,2,4] and d_delta < 0 or d_delta2 < 0 and not self.map_decel_only:
             if (int(CS.clu_Vanz)-1) <= int(CS.VSetDis) and dRele - dRelef > 3 and lead2_status:
                 self.seq_step_debug = 3
                 #lead_wait_cmd, lead_set_speed = self.get_tm_speed(CS, 15, -5)
