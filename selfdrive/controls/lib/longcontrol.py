@@ -118,7 +118,7 @@ class LongControl():
       dRel = radarState.leadOne.dRel
       vRel = radarState.leadOne.vRel
     if long_plan.hasLead:
-      stop = True if (dRel < 4.0 and radarState.leadOne.status) else False
+      stop = True if (dRel < 3.5 and radarState.leadOne.status) else False
     else:
       stop = False
 
@@ -167,7 +167,7 @@ class LongControl():
       # Keep applying brakes until the car is stopped
       factor = 1
       if long_plan.hasLead:
-        factor = interp(dRel,[2.0,4.0], [2.0,1.0])
+        factor = interp(dRel,[2.0,3.5], [2.0,1.0])
       if not CS.standstill or output_accel > CP.stopAccel:
         output_accel -= CP.stoppingDecelRate * DT_CTRL * factor
       elif CS.cruiseState.standstill and output_accel < CP.stopAccel:
@@ -180,7 +180,7 @@ class LongControl():
     elif self.long_control_state == LongCtrlState.starting:
       factor = 1
       if long_plan.hasLead:
-        factor = interp(dRel,[4.0,5.0], [1.0,100.0])
+        factor = interp(dRel,[3.5,5.0], [1.0,100.0])
       if output_accel < CP.startAccel:
         output_accel += CP.startingAccelRate * DT_CTRL * factor
       self.reset(CS.vEgo)

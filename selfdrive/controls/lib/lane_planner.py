@@ -51,7 +51,7 @@ class LanePlanner:
   def parse_model(self, md, sm):
 
     mode_select = sm['carState'].cruiseState.modeSel
-    if mode_select == 3:
+    if mode_select == 4:
       lean_offset = -0.2
     else:
       lean_offset = 0
