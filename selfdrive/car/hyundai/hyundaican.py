@@ -20,6 +20,16 @@ def create_lkas11(packer, frame, car_fingerprint, apply_steer, steer_req,
   values["CF_Lkas_ToiFlt"] = steer_wind_down if steerwinddown_enabled else 0
   values["CF_Lkas_MsgCount"] = frame % 0x10
 
+  if car_fingerprint in [CAR.GRANDEUR_IG_HEV]:
+    nSysWarnVal = 9
+    if steer_req:
+      nSysWarnVal = 4
+ 
+    values["CF_Lkas_SysWarning"] = nSysWarnVal if sys_warning else 0
+
+    # CF_Lkas_SysWarning  4 keep hand on wheel
+    # CF_Lkas_SysWarning  9 keep hands on wheel (red) + beep
+
   if car_fingerprint in FEATURES["send_lfahda_mfa"]:
     values["CF_Lkas_LdwsActivemode"] = int(left_lane) + (int(right_lane) << 1)
     values["CF_Lkas_LdwsOpt_USM"] = 2
@@ -83,6 +93,29 @@ def create_lfahda_mfc(packer, enabled, hda_set_speed=0):
     "HDA_VSetReq": hda_set_speed,
   }
   return packer.make_can_msg("LFAHDA_MFC", 0, values)
+
+def create_hda_mfc(packer, CS, enabled, left_lane, right_lane ):
+  values = CS.lfahda
+
+
+  ldwSysState = 0
+  if left_lane:
+    ldwSysState += 1
+  if right_lane:
+    ldwSysState += 2
+  #values["HDA_Icon_Wheel"] = 1 if enabled else 0
+  #values["HDA_Icon_State"] = hda_icon_state
+  values["HDA_LdwSysState"] = ldwSysState
+  values["HDA_Icon_Wheel"] = 1 if enabled else 0
+  
+  # HDA_Icon_State  2 HDA active, 1 HDA available, 0  HDA not available
+  # HDA_USM 2 = ?
+  # HDA_Active    1 AUTO(icon)==HDA_VSetReq(highway limit speed), 0 HDA(icon)
+
+  # HDA_Icon_State 0 = HDA not available
+  # HDA_Icon_State 1 = HDA available
+  # HDA_Icon_State 2 = HDA active
+  return packer.make_can_msg("LFAHDA_MFC", 0, values)  
 
 def create_scc11(packer, frame, set_speed, lead_visible, scc_live, lead_dist, lead_vrel, lead_yrel, car_fingerprint, speed, standstill, scc11):
   values = scc11

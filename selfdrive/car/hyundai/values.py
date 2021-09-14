@@ -570,6 +570,8 @@ FEATURES = {
   # send LFA MFA message for new HKG models
   # Insert your car in this if you want turn LFA icon on.
   "send_lfahda_mfa": {CAR.GRANDEUR_IG_FL_HEV, CAR.GRANDEUR_IG_FL, CAR.SONATA, CAR.PALISADE, CAR.SONATA_HEV, CAR.SANTA_FE, CAR.KONA_EV, CAR.NIRO_EV, CAR.KONA_HEV, CAR.SELTOS, CAR.SOUL_EV, CAR.NEXO, CAR.MOHAVE},
+
+  "send_hda_mfa": set([CAR.GRANDEUR_IG_HEV]),
   # these cars use the FCA11 message for the AEB and FCW signals, all others use SCC12
   # Insert your car in this if you see front collision error on your cluster.
   "use_fca": {CAR.GRANDEUR_IG_FL_HEV, CAR.GRANDEUR_IG_FL, CAR.SONATA, CAR.AVANTE, CAR.I30, CAR.PALISADE, CAR.GENESIS_G70, CAR.KONA_HEV, CAR.SELTOS, CAR.MOHAVE},

@@ -36,6 +36,8 @@ class CarState(CarStateBase):
     self.cruiseState_modeSel = 0
     self.SC = SpdController()
 
+    self.lfahda = None
+
     self.driverAcc_time = 0
     
     self.steer_anglecorrection = float(int(Params().get("OpkrSteerAngleCorrection", encoding="utf8")) * 0.1)
@@ -285,6 +287,12 @@ class CarState(CarStateBase):
 
     self.scc11init = copy.copy(cp.vl["SCC11"])
     self.scc12init = copy.copy(cp.vl["SCC12"])
+
+    if CP.carFingerprint in FEATURES["send_hda_mfa"]:
+      self.lfahda = copy.copy(cp_cam.vl["LFAHDA_MFC"])
+
+      
+
 
     ret.brakeHold = cp.vl["TCS15"]["AVH_LAMP"] == 2 # 0 OFF, 1 ERROR, 2 ACTIVE, 3 READY
     self.brakeHold = ret.brakeHold
@@ -657,5 +665,15 @@ class CarState(CarStateBase):
           ("PAINT1_Status", "FCA11", 1),
         ]
         checks += [("FCA11", 50)]
+
+      if CP.carFingerprint in FEATURES["send_hda_mfa"]:
+        signals += [
+          ("HDA_USM", "LFAHDA_MFC", 0),
+          ("HDA_Active", "LFAHDA_MFC", 0),
+          ("HDA_Icon_State", "LFAHDA_MFC", 0),
+          ("HDA_LdwSysState", "LFAHDA_MFC", 0),
+          ("HDA_Icon_Wheel", "LFAHDA_MFC", 0),
+        ]
+        checks += [("LFAHDA_MFC", 20)]
 
     return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 2, enforce_checks=False)
