@@ -96,8 +96,7 @@ def create_lfahda_mfc(packer, enabled, hda_set_speed=0):
 
 def create_hda_mfc(packer, CS, enabled, left_lane, right_lane ):
   values = CS.lfahda
-
-
+  
   ldwSysState = 0
   if left_lane:
     ldwSysState += 1
