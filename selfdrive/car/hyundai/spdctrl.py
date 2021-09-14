@@ -13,6 +13,7 @@ LaneChangeState = log.LateralPlan.LaneChangeState
 class Spdctrl(SpdController):
     def __init__(self, CP=None):
         super().__init__( CP )
+        self.params = Params()
         self.cv_Raio = 0.4
         self.cv_Dist = -5
         self.steer_mode = 0
@@ -29,7 +30,7 @@ class Spdctrl(SpdController):
         self.hesitant_status = False
         self.hesitant_timer = 0
         self.map_decel_only = False
-        self.map_spdlimit_offset = int(Params().get("OpkrSpeedLimitOffset", encoding="utf8"))
+        self.map_spdlimit_offset = int(self.params.get("OpkrSpeedLimitOffset", encoding="utf8"))
         self.map_enabled = False
         self.second = 0
 
@@ -45,7 +46,7 @@ class Spdctrl(SpdController):
         lead2_status = plan.status2
         self.second += 1
         if self.second > 100:
-            self.map_enabled = Params().get_bool("OpkrMapEnable")
+            self.map_enabled = self.params.get_bool("OpkrMapEnable")
             self.second = 0
         if self.map_enabled:
             self.target_speed_camera = plan.targetSpeedCamera + round(plan.targetSpeedCamera*0.01*self.map_spdlimit_offset)

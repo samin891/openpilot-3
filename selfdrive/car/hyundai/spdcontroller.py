@@ -179,7 +179,7 @@ class SpdController():
 
         self.second += 1
         if self.second > 200:
-            self.map_enabled = Params().get_bool("OpkrMapEnable")
+            self.map_enabled = self.params.get_bool("OpkrMapEnable")
             self.second = 0
 
         if self.map_enabled:
