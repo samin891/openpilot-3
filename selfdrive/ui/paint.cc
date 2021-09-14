@@ -1280,11 +1280,11 @@ static void ui_draw_live_tune_panel(UIState *s) {
 static void ui_draw_auto_hold(UIState *s) {
   const int width = 500;
   const Rect rect = {s->fb_w/2 - width/2, 700, width, 200};
-  NVGcolor color = COLOR_BLACK_ALPHA(100);
+  NVGcolor color = COLOR_BLACK_ALPHA(50);
   ui_fill_rect(s->vg, rect, color, 30.);
-  ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(100), 10, 20.);
+  ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(50), 10, 20.);
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-  ui_draw_text(s, rect.centerX(), rect.centerY(), "AUTO HOLD", 70, COLOR_GREEN_ALPHA(150), "sans-bold");
+  ui_draw_text(s, rect.centerX(), rect.centerY(), "AUTO HOLD", 90, COLOR_GREEN_ALPHA(150), "sans-bold");
 }
 
 static void ui_draw_vision(UIState *s) {
