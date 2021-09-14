@@ -510,8 +510,8 @@ class CarController():
           else:
             stock_weight = 0.
           accel = accel * (1. - stock_weight) + aReqValue * stock_weight
-        elif 0 < CS.out.radarDistance <= 4: # use radar by force to stop anyway below 4m
-          stock_weight = interp(CS.out.radarDistance, [3., 4.], [1., 0.])
+        elif 0 < CS.out.radarDistance <= 3.5: # use radar by force to stop anyway below 3.5m
+          stock_weight = interp(CS.out.radarDistance, [3., 3.5], [1., 0.])
           accel = accel * (1. - stock_weight) + aReqValue * stock_weight
         else:
           stock_weight = 0.
