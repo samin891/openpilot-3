@@ -178,7 +178,7 @@ class SpdController():
         dec_step_cmd = 1
 
         self.second += 1
-        if self.second > 200:
+        if self.second > 100:
             self.map_enabled = self.params.get_bool("OpkrMapEnable")
             self.second = 0
 
