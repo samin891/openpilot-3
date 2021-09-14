@@ -664,8 +664,11 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
   },
 
   EventName.brakeHold: {
-    ET.USER_DISABLE: EngagementAlert(AudibleAlert.none),
-    ET.NO_ENTRY: NoEntryAlert("브레이크 홀드 중"),
+    ET.WARNING: Alert(
+      "AUTO",
+      "HOLD",
+      AlertStatus.normal, AlertSize.full,
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, 1., 1., 1.),
   },
 
   EventName.parkBrake: {

@@ -129,6 +129,7 @@ typedef struct UIScene {
   cereal::PandaState::PandaType pandaType;
 
   bool brakePress;
+  bool brakeHold;
   bool recording = false;
   bool touched = false;
   bool map_on_top = false;
@@ -158,7 +159,6 @@ typedef struct UIScene {
   bool brakeLights;
   bool steerOverride;
   float output_scale;
-  float curvaturef;
   int batteryPercent;
   bool batteryCharging;
   char batteryStatus[64];

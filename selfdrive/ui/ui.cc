@@ -124,7 +124,6 @@ static void update_state(UIState *s) {
     } else if (scene.lateralControlMethod == 2) {
       scene.output_scale = scene.controls_state.getLateralControlState().getLqrState().getOutput();
     }
-    scene.curvaturef = scene.controls_state.getCurvaturef();
 
     scene.alertTextMsg1 = scene.controls_state.getAlertTextMsg1(); //debug1
     scene.alertTextMsg2 = scene.controls_state.getAlertTextMsg2(); //debug2
@@ -162,6 +161,7 @@ static void update_state(UIState *s) {
     scene.cruiseAccStatus = cs_data.getCruiseAccStatus();
     scene.angleSteers = cs_data.getSteeringAngleDeg();
     scene.cruise_gap = cs_data.getCruiseGapSet();
+    scene.brakeHold = cs_data.getBrakeHold();
   }
 
   if (sm.updated("liveParameters")) {

@@ -342,7 +342,6 @@ static void ui_draw_debug(UIState *s) {
     ui_print(s, ui_viz_rx, ui_viz_ry+400, "SC:%.2f", scene.lateralPlan.steerRateCost);
     ui_print(s, ui_viz_rx, ui_viz_ry+440, "OS:%.2f", abs(scene.output_scale));
     ui_print(s, ui_viz_rx, ui_viz_ry+480, "%.2f|%.2f", scene.lateralPlan.lProb, scene.lateralPlan.rProb);
-    ui_print(s, ui_viz_rx, ui_viz_ry+720, "%.6f", abs(scene.curvaturef));
     //ui_print(s, ui_viz_rx, ui_viz_ry+800, "A:%.5f", scene.accel_sensor2);
     if (scene.map_is_running) {
       if (scene.liveMapData.opkrspeedsign) ui_print(s, ui_viz_rx, ui_viz_ry+520, "SS:%.0f", scene.liveMapData.opkrspeedsign);
@@ -1278,6 +1277,16 @@ static void ui_draw_live_tune_panel(UIState *s) {
   nvgFill(s->vg);
 }
 
+static void ui_draw_auto_hold(UIState *s) {
+  const int width = 500;
+  const Rect rect = {s->fb_w/2 - width/2, 700, width, 200};
+  NVGcolor color = COLOR_BLACK_ALPHA(100);
+  ui_fill_rect(s->vg, rect, color, 30.);
+  ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(100), 10, 20.);
+  nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+  ui_draw_text(s, rect.centerX(), rect.centerY(), "AUTO HOLD", 70, COLOR_GREEN_ALPHA(150), "sans-bold");
+}
+
 static void ui_draw_vision(UIState *s) {
   const UIScene *scene = &s->scene;
   // Draw augmented elements
@@ -1297,6 +1306,10 @@ static void ui_draw_vision(UIState *s) {
   }
   if ((scene->kr_date_show || scene->kr_time_show) && !scene->comma_stock_ui) {
     draw_kr_date_time(s);
+  }
+  // if (scene->brakeHold) {
+  if (true) {
+    ui_draw_auto_hold(s);
   }
 }
 

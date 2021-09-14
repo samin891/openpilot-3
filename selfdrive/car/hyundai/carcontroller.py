@@ -141,6 +141,8 @@ class CarController():
     self.auto_res_timer = 0
     self.res_speed = 0
     self.res_speed_timer = 0
+    self.autohold_popup_timer = 0
+    self.autohold_popup_switch = False
 
     self.steerMax_base = int(self.params.get("SteerMaxBaseAdj", encoding="utf8"))
     self.steerDeltaUp_base = int(self.params.get("SteerDeltaUpBaseAdj", encoding="utf8"))
@@ -397,6 +399,14 @@ class CarController():
       else: 
         self.v_cruise_kph_auto_res = 0
         self.res_speed = 0
+    if CS.brakeHold and not self.autohold_popup_switch:
+      self.autohold_popup_timer = 100
+      self.autohold_popup_switch = True
+    elif CS.brakeHold and self.autohold_popup_switch and self.autohold_popup_timer:
+      self.autohold_popup_timer -= 1
+    elif not CS.brakeHold and self.autohold_popup_switch:
+      self.autohold_popup_switch = False
+      self.autohold_popup_timer = 0
 
     opkr_cruise_auto_res_condition = False
     opkr_cruise_auto_res_condition = not self.opkr_cruise_auto_res_condition or CS.out.gasPressed
