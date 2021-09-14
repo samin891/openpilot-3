@@ -1279,7 +1279,7 @@ static void ui_draw_live_tune_panel(UIState *s) {
 
 static void ui_draw_auto_hold(UIState *s) {
   const int width = 500;
-  const Rect rect = {s->fb_w/2 - width/2, 720, width, 180};
+  const Rect rect = {s->fb_w/2 - width/2, 740, width, 160};
   NVGcolor color = COLOR_BLACK_ALPHA(50);
   ui_fill_rect(s->vg, rect, color, 30.);
   ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(50), 10, 20.);
