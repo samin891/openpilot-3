@@ -665,8 +665,8 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
 
   EventName.brakeHold: {
     ET.WARNING: Alert(
-      "AUTO",
-      "HOLD",
+      "AUTO HOLD",
+      "",
       AlertStatus.normal, AlertSize.full,
       Priority.LOW, VisualAlert.none, AudibleAlert.none, 1., 1., 1.),
   },
