@@ -1307,7 +1307,7 @@ static void ui_draw_vision(UIState *s) {
   if ((scene->kr_date_show || scene->kr_time_show) && !scene->comma_stock_ui) {
     draw_kr_date_time(s);
   }
-  if (scene->brakeHold) {
+  if (scene->brakeHold && !scene->comma_stock_ui) {
     ui_draw_auto_hold(s);
   }
 }
