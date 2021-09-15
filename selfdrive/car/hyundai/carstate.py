@@ -288,7 +288,7 @@ class CarState(CarStateBase):
     self.scc11init = copy.copy(cp.vl["SCC11"])
     self.scc12init = copy.copy(cp.vl["SCC12"])
 
-    if CP.carFingerprint in FEATURES["send_hda_mfa"]:
+    if self.CP.carFingerprint in FEATURES["send_hda_mfa"]:
       self.lfahda = copy.copy(cp_cam.vl["LFAHDA_MFC"])
 
       
