@@ -162,6 +162,8 @@ static void update_state(UIState *s) {
     scene.angleSteers = cs_data.getSteeringAngleDeg();
     scene.cruise_gap = cs_data.getCruiseGapSet();
     scene.brakeHold = cs_data.getBrakeHold();
+    scene.steer_warning = cs_data.getSteerWarning();
+    scene.stand_still = cs_data.getStandstill();
   }
 
   if (sm.updated("liveParameters")) {
@@ -362,6 +364,7 @@ static void update_params(UIState *s) {
     scene.live_tune_panel_enable = params.getBool("OpkrLiveTunePanelEnable");
     scene.kr_date_show = params.getBool("KRDateShow");
     scene.kr_time_show = params.getBool("KRTimeShow");
+    scene.steer_wind_down = params.getBool("SteerWindDown");
 
     if (scene.autoScreenOff > 0) {
       scene.nTime = scene.autoScreenOff * 60 * UI_FREQ;

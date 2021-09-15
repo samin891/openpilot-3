@@ -1278,8 +1278,14 @@ static void ui_draw_live_tune_panel(UIState *s) {
 }
 
 static void ui_draw_auto_hold(UIState *s) {
+  int y_pos = 0;
+  if (s->scene.steer_warning && (s->scene.car_state.getVEgo() < 0.1 || s->scene.stand_still) && !s->scene.steer_wind_down && s->scene.car_state.getSteeringAngleDeg() < 90) {
+    y_pos = 500;
+  } else {
+    y_pos = 740;
+  }
   const int width = 500;
-  const Rect rect = {s->fb_w/2 - width/2, 740, width, 160};
+  const Rect rect = {s->fb_w/2 - width/2, y_pos, width, 160};
   NVGcolor color = COLOR_BLACK_ALPHA(50);
   ui_fill_rect(s->vg, rect, color, 30.);
   ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(50), 10, 20.);
