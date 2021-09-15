@@ -492,8 +492,8 @@ class CarController():
 
         accel = actuators.accel if enabled else 0
         jerk = clip(2.0 * (accel - CS.out.aEgo), -12.7, 12.7)
-        if accel < 0:
-          accel = interp(accel - CS.out.aEgo, [-1.0, -0.5], [2 * accel, accel])
+        # if accel < 0:
+        #   accel = interp(accel - CS.out.aEgo, [-1.0, -0.5], [2 * accel, accel])
         accel = clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
         stopping = (actuators.longControlState == LongCtrlState.stopping)
 
