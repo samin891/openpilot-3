@@ -204,6 +204,9 @@ def manager_init():
   cloudlog.bind_global(dongle_id=dongle_id, version=version, dirty=dirty,
                        device=HARDWARE.get_device_type())
 
+  # opkr
+  if os.path.isfile('/data/log/error.txt'):
+    os.remove('/data/log/error.txt')
   if comma_remote and not (os.getenv("NOLOG") or os.getenv("NOCRASH") or PC):
     crash.init()
 

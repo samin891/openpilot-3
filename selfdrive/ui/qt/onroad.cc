@@ -1,10 +1,13 @@
 #include "selfdrive/ui/qt/onroad.h"
 
 #include <QDebug>
+#include <QFileInfo>
+#include <QDateTime>
 
 #include "selfdrive/common/timing.h"
 #include "selfdrive/ui/paint.h"
 #include "selfdrive/ui/qt/util.h"
+#include "selfdrive/ui/qt/widgets/input.h"
 #ifdef ENABLE_MAPS
 #include "selfdrive/ui/qt/maps/map.h"
 #endif
@@ -53,11 +56,33 @@ void OnroadWindow::updateState(const UIState &s) {
     // Handle controls timeout
     if (sm.rcv_frame("controlsState") < s.scene.started_frame) {
       // car is started, but controlsState hasn't been seen at all
-      if (!s.scene.is_OpenpilotViewEnabled) alerts->updateAlert(CONTROLS_WAITING_ALERT, bgColor);
+      if (!s.scene.is_OpenpilotViewEnabled) {
+        // opkr
+        if (QFileInfo::exists("/data/log/error.txt")) {
+          QFileInfo fileInfo;
+          fileInfo.setFile("/data/log/error.txt");
+          QDateTime modifiedtime = fileInfo.lastModified();
+          QString modified_time = modifiedtime.toString("yyyy-MM-dd hh:mm:ss     ");
+          const std::string txt = util::read_file("/data/log/error.txt");
+          RichTextDialog::alert(modified_time + QString::fromStdString(txt), this);
+        }
+        alerts->updateAlert(CONTROLS_WAITING_ALERT, bgColor);
+      }
     } else if ((nanos_since_boot() - sm.rcv_time("controlsState")) / 1e9 > CONTROLS_TIMEOUT) {
       // car is started, but controls is lagging or died
       bgColor = bg_colors[STATUS_ALERT];
-      if (!s.scene.is_OpenpilotViewEnabled) alerts->updateAlert(CONTROLS_UNRESPONSIVE_ALERT, bgColor);
+      if (!s.scene.is_OpenpilotViewEnabled) {
+        // opkr
+        if (QFileInfo::exists("/data/log/error.txt")) {
+          QFileInfo fileInfo;
+          fileInfo.setFile("/data/log/error.txt");
+          QDateTime modifiedtime = fileInfo.lastModified();
+          QString modified_time = modifiedtime.toString("yyyy-MM-dd hh:mm:ss     ");
+          const std::string txt = util::read_file("/data/log/error.txt");
+          RichTextDialog::alert(modified_time + QString::fromStdString(txt), this);
+        }
+        alerts->updateAlert(CONTROLS_UNRESPONSIVE_ALERT, bgColor);
+      }
     }
   }
   if (bg != bgColor) {
