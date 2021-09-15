@@ -8,7 +8,7 @@ from selfdrive.car.hyundai.hyundaican import create_lkas11, create_clu11, create
                                              create_scc42a, create_scc7d0, create_mdps12
 from selfdrive.car.hyundai.values import Buttons, CarControllerParams, CAR, FEATURES
 from opendbc.can.packer import CANPacker
-
+from selfdrive.controls.lib.longcontrol import LongCtrlState
 from selfdrive.car.hyundai.carstate import GearShifter
 from selfdrive.controls.lib.lateral_planner import LANE_CHANGE_SPEED_MIN
 
@@ -25,8 +25,38 @@ from random import randint
 from decimal import Decimal
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
-LongCtrlState = car.CarControl.Actuators.LongControlState
 
+# Accel limits
+ACCEL_HYST_GAP = 0.02  # don't change accel command for small oscillations within this value
+ACCEL_MAX = 1.5  # 1.5 m/s2
+ACCEL_MIN = -3.0 # 3   m/s2
+ACCEL_SCALE = max(ACCEL_MAX, -ACCEL_MIN)
+
+def accel_hysteresis(accel, accel_steady):
+
+  # for small accel oscillations within ACCEL_HYST_GAP, don't change the accel command
+  if accel > accel_steady + ACCEL_HYST_GAP:
+    accel_steady = accel - ACCEL_HYST_GAP
+  elif accel < accel_steady - ACCEL_HYST_GAP:
+    accel_steady = accel + ACCEL_HYST_GAP
+  accel = accel_steady
+
+  return accel, accel_steady
+
+def accel_rate_limit(accel_lim, prev_accel_lim):
+
+  if accel_lim > 0:
+    if accel_lim > prev_accel_lim:
+      accel_lim = min(accel_lim, prev_accel_lim + 0.02)
+    else:
+      accel_lim = max(accel_lim, prev_accel_lim - 0.035)
+  else:
+    if accel_lim < prev_accel_lim:
+      accel_lim = max(accel_lim, prev_accel_lim - 0.035)
+    else:
+      accel_lim = min(accel_lim, prev_accel_lim + 0.01)
+
+  return accel_lim
 
 def process_hud_alert(enabled, fingerprint, visual_alert, left_lane,
                       right_lane, left_lane_depart, right_lane_depart):
@@ -57,9 +87,12 @@ class CarController():
     self.p = CarControllerParams(CP)
     self.packer = CANPacker(dbc_name)
 
-    self.apply_steer_last = 0
+    self.apply_steer_last = 0.
     self.car_fingerprint = CP.carFingerprint
     self.steer_rate_limited = False
+    self.accel_steady = 0.
+    self.accel_lim_prev = 0.
+    self.accel_lim = 0.
     self.counter_init = False
     self.aq_value = 0
 
@@ -175,6 +208,18 @@ class CarController():
   def update(self, enabled, CS, frame, actuators, pcm_cancel_cmd, visual_alert,
              left_lane, right_lane, left_lane_depart, right_lane_depart, set_speed, lead_visible, lead_dist, lead_vrel, lead_yrel, sm):
 
+    # *** compute control surfaces ***
+
+    # gas and brake
+    self.accel_lim_prev = self.accel_lim
+    apply_accel = actuators.gas - actuators.brake
+
+    apply_accel, self.accel_steady = accel_hysteresis(apply_accel, self.accel_steady)
+    apply_accel = clip(apply_accel * ACCEL_SCALE, ACCEL_MIN, ACCEL_MAX)
+
+    self.accel_lim = apply_accel
+    apply_accel = accel_rate_limit(self.accel_lim, self.accel_lim_prev)
+
     param = self.p
 
     if frame % 10 == 0:
@@ -260,6 +305,7 @@ class CarController():
     if lkas_active or CS.out.steeringPressed:
       self.steer_wind_down = 0
 
+    self.apply_accel_last = apply_accel
     self.apply_steer_last = apply_steer
 
     if CS.acc_active and CS.lead_distance > 149 and self.dRel < ((CS.out.vEgo * CV.MS_TO_KPH)+5) < 100 and \
@@ -484,19 +530,6 @@ class CarController():
         self.scc11cnt += 1
         self.scc11cnt %= 0x10
         lead_objspd = CS.lead_objspd  # vRel (km/h)
-
-        objdiststat = 0
-        if lead_visible:
-          objdiststat = 1 if lead_dist < 25 else 2 if lead_dist < 40 else \
-                            3 if lead_dist < 60 else 4 if lead_dist < 80 else 5
-
-        accel = actuators.accel if enabled else 0
-        jerk = clip(2.0 * (accel - CS.out.aEgo), -12.7, 12.7)
-        if accel < 0:
-          accel = interp(accel - CS.out.aEgo, [-1.0, -0.5], [2 * accel, accel])
-        accel = clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
-        stopping = (actuators.longControlState == LongCtrlState.stopping)
-
         aReqValue = CS.scc12["aReqValue"]
         if 0 < CS.out.radarDistance <= 149 and self.radar_helper_enabled:
           # neokii's logic, opkr mod
@@ -509,23 +542,23 @@ class CarController():
             stock_weight = interp(CS.out.radarDistance, [3., 25.], [1., 0.])
           else:
             stock_weight = 0.
-          accel = accel * (1. - stock_weight) + aReqValue * stock_weight
-        elif 0 < CS.out.radarDistance <= 3.5: # use radar by force to stop anyway below 3.5m
-          stock_weight = interp(CS.out.radarDistance, [3., 3.5], [1., 0.])
-          accel = accel * (1. - stock_weight) + aReqValue * stock_weight
+          apply_accel = apply_accel * (1. - stock_weight) + aReqValue * stock_weight
+        elif 0 < CS.out.radarDistance <= 4: # use radar by force to stop anyway below 4m
+          stock_weight = interp(CS.out.radarDistance, [3., 4.], [1., 0.])
+          apply_accel = apply_accel * (1. - stock_weight) + aReqValue * stock_weight
         else:
           stock_weight = 0.
-        self.aq_value = accel
+        self.aq_value = apply_accel
         can_sends.append(create_scc11(self.packer, frame, set_speed, lead_visible, self.scc_live, lead_dist, lead_vrel, lead_yrel, 
          self.car_fingerprint, CS.out.vEgo * CV.MS_TO_KPH, self.acc_standstill, CS.scc11))
         if (CS.brake_check or CS.cancel_check) and self.car_fingerprint not in [CAR.NIRO_EV]:
-          can_sends.append(create_scc12(self.packer, accel, enabled, self.scc_live, CS.out.gasPressed, 1, 
-           CS.out.stockAeb, self.car_fingerprint, CS.out.vEgo * CV.MS_TO_KPH, stopping, CS.scc12))
+          can_sends.append(create_scc12(self.packer, apply_accel, enabled, self.scc_live, CS.out.gasPressed, 1, 
+           CS.out.stockAeb, self.car_fingerprint, CS.out.vEgo * CV.MS_TO_KPH, CS.scc12))
         else:
-          can_sends.append(create_scc12(self.packer, accel, enabled, self.scc_live, CS.out.gasPressed, CS.out.brakePressed, 
-           CS.out.stockAeb, self.car_fingerprint, CS.out.vEgo * CV.MS_TO_KPH, stopping, CS.scc12))
+          can_sends.append(create_scc12(self.packer, apply_accel, enabled, self.scc_live, CS.out.gasPressed, CS.out.brakePressed, 
+           CS.out.stockAeb, self.car_fingerprint, CS.out.vEgo * CV.MS_TO_KPH, CS.scc12))
         can_sends.append(create_scc14(self.packer, enabled, CS.scc14, CS.out.stockAeb, lead_visible, lead_dist, 
-         CS.out.vEgo, self.acc_standstill, self.car_fingerprint, jerk, stopping, objdiststat))
+         CS.out.vEgo, self.acc_standstill, self.car_fingerprint))
       if frame % 20 == 0:
         can_sends.append(create_scc13(self.packer, CS.scc13))
       if frame % 50 == 0:

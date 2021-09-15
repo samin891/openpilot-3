@@ -25,8 +25,8 @@ class CarInterface(CarInterfaceBase):
     self.mad_mode_enabled = Params().get_bool('MadModeEnabled')
 
   @staticmethod
-  def get_pid_accel_limits(CP, current_speed, cruise_speed):
-    return CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX
+  def compute_gb(accel, speed):
+    return float(accel) / CarControllerParams.MAX_BRAKE
 
   @staticmethod
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), car_fw=[]):  # pylint: disable=dangerous-default-value
@@ -60,32 +60,20 @@ class CarInterface(CarInterfaceBase):
     ret.steerLimitTimer = 0.8
     tire_stiffness_factor = 1.
 
-    ret.stoppingControl = True
+    ret.longitudinalTuning.kpBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kpV = [1.2, 1.0, 0.8, 0.65, 0.5, 0.4]
+    ret.longitudinalTuning.kiBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kiV = [0.3, 0.24, 0.22, 0.18, 0.15, 0.13]
 
-    ret.longitudinalTuning.kpV = [0.1]
-    ret.longitudinalTuning.kiV = [0.0]
+    ret.longitudinalTuning.deadzoneBP = [0., 4.]
+    ret.longitudinalTuning.deadzoneV = [0., 0.1]
+    ret.longitudinalTuning.kdBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kdV = [0.7, 0.65, 0.5, 0.4, 0.3, 0.2]
+    ret.longitudinalTuning.kfBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kfV = [1., 1., 1., 1., 1., 1.]
 
-    #ret.longitudinalTuning.kpBP = [0., 4., 9., 17., 23., 31.]
-    #ret.longitudinalTuning.kpV = [1.2, 1.0, 0.8, 0.65, 0.5, 0.4]
-    #ret.longitudinalTuning.kiBP = [0., 4., 9., 17., 23., 31.]
-    #ret.longitudinalTuning.kiV = [0.3, 0.24, 0.22, 0.18, 0.15, 0.13]
+    ret.startAccel = 0.0
 
-    #ret.longitudinalTuning.deadzoneBP = [0., 4.]
-    #ret.longitudinalTuning.deadzoneV = [0., 0.1]
-    #ret.longitudinalTuning.kdBP = [0., 4., 9., 17., 23., 31.]
-    #ret.longitudinalTuning.kdV = [0.7, 0.65, 0.5, 0.4, 0.3, 0.2]
-    #ret.longitudinalTuning.kfBP = [0., 4., 9., 17., 23., 31.]
-    #ret.longitudinalTuning.kfV = [1., 1., 1., 1., 1., 1.]
-
-    ret.vEgoStopping = 0.5
-    ret.vEgoStarting = 0.5
-    ret.stoppingDecelRate = 0.2
-    ret.startingAccelRate = 0.8
-    ret.startAccel = -0.2
-    ret.stopAccel = -0.5
-
-    ret.longitudinalActuatorDelay = 0.15 # s
-    
     ret.vCruisekph = 0
     ret.resSpeed = 0
 

@@ -135,24 +135,21 @@ def create_scc11(packer, frame, set_speed, lead_visible, scc_live, lead_dist, le
 
   return packer.make_can_msg("SCC11", 0, values)
 
-def create_scc12(packer, accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, car_fingerprint, speed, stopping, scc12):
+def create_scc12(packer, apply_accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, car_fingerprint, speed, scc12):
   values = scc12
   if not aebcmdact:
     if enabled and car_fingerprint in [CAR.NIRO_EV]:
-      values["ACCMode"] = 2 if gaspressed and (accel > -0.2) else 1
-      values["aReqRaw"] = accel
-      values["aReqValue"] = accel
-      values["StopReq"] = 1 if stopping else 0
+      values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
+      values["aReqRaw"] = apply_accel
+      values["aReqValue"] = apply_accel
     elif enabled and not brakepressed:
-      values["ACCMode"] = 2 if gaspressed and (accel > -0.2) else 1
-      values["aReqRaw"] = accel
-      values["aReqValue"] = accel
-      values["StopReq"] = 1 if stopping else 0
+      values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
+      values["aReqRaw"] = apply_accel
+      values["aReqValue"] = apply_accel
     else:
       values["ACCMode"] = 0
       values["aReqRaw"] = 0
       values["aReqValue"] = 0
-      values["StopReq"] = 0
     values["CR_VSM_ChkSum"] = 0
   if not scc_live:
     values["ACCMode"] = 1 if enabled else 0 # 2 if gas padel pressed
@@ -165,7 +162,7 @@ def create_scc13(packer, scc13):
   values = scc13
   return packer.make_can_msg("SCC13", 0, values)
 
-def create_scc14(packer, enabled, scc14, aebcmdact, lead_visible, lead_dist, v_ego, standstill, car_fingerprint, jerk, stopping, objdiststat):
+def create_scc14(packer, enabled, scc14, aebcmdact, lead_visible, lead_dist, v_ego, standstill, car_fingerprint):
   values = scc14
   if enabled and not aebcmdact and car_fingerprint in [CAR.NIRO_EV]:
     if standstill:
@@ -182,12 +179,12 @@ def create_scc14(packer, enabled, scc14, aebcmdact, lead_visible, lead_dist, v_e
       values["ComfortBandUpper"] = 50.
       values["ComfortBandLower"] = 50.
   elif enabled and not aebcmdact:
-    values["JerkUpperLimit"] = max(jerk, 1.0) if not stopping else 0
-    values["JerkLowerLimit"] = max(-jerk, 1.0)
+    values["JerkUpperLimit"] = 12.7
+    values["JerkLowerLimit"] = 12.7
     values["ComfortBandUpper"] = 0
     values["ComfortBandLower"] = 0
     values["ACCMode"] = 1 # stock will always be 4 instead of 0 after first disengage
-    values["ObjGap"] = objdiststat # 1-5 based on distance to lead vehicle
+    values["ObjGap"] = int(min(lead_dist+2, 10)/2) if lead_visible else 0 # 1-5 based on distance to lead vehicle
   else:
     values["JerkUpperLimit"] = 0
     values["JerkLowerLimit"] = 0
