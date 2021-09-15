@@ -36,8 +36,8 @@ class SpdctrlLong(SpdController):
         self.curv_hold4 = 0
         self.curv_hold5 = 0
 
-    def update_lead(self, sm, CS, dRel, yRel, vRel)
-        self.map_decel_only = CS.out.cruiseState.modeSel == 5
+    def update_lead(self, sm, CS, dRel, yRel, vRel):
+        self.map_decel_only = CS.out.cruiseState.modeSel1 == 5
         plan = sm['longitudinalPlan']
         dRele = plan.dRel1 #EON Lead
         yRele = plan.yRel1 #EON Lead
