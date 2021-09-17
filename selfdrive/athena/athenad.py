@@ -563,9 +563,10 @@ def main():
 
       handle_long_poll(ws)
     except (KeyboardInterrupt, SystemExit):
-      break
+      pass
     except (ConnectionError, TimeoutError, WebSocketException):
       conn_retries += 1
+      pass
       # params.delete("PrimeRedirected")
       # params.delete("LastAthenaPingTime")
     except socket.timeout:
