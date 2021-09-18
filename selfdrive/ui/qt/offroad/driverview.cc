@@ -33,10 +33,7 @@ void DriverViewWindow::mousePressEvent(QMouseEvent* e) {
     }
     return;
   }
-  if (infill) {
-    infill = false;
-    QProcess::execute("killall -SIGINT screenrecord");
-  }
+
   emit done();
 }
 
@@ -52,6 +49,11 @@ void DriverViewScene::showEvent(QShowEvent* event) {
 
 void DriverViewScene::hideEvent(QHideEvent* event) {
   params.putBool("IsDriverViewEnabled", false);
+
+  if (infill) {
+    infill = false;
+    QProcess::execute("killall -SIGINT screenrecord");
+  }  
 }
 
 void DriverViewScene::frameUpdated() {
