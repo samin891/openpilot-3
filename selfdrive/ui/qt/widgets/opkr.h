@@ -533,6 +533,23 @@ public:
   }
 };
 
+class ShowErrorToggle : public ToggleControl {
+  Q_OBJECT
+
+public:
+  ShowErrorToggle() : ToggleControl("TMUX에러로그 화면 표시", "주행중 혹은 오프로드 상태에서 프로세스 에러가 발생 했을 때 에러를 이온 화면에 표시합니다.", "../assets/offroad/icon_shell.png", Params().getBool("ShowError")) {
+    QObject::connect(this, &ShowErrorToggle::toggleFlipped, [=](int state) {
+      bool status = state ? true : false;
+      Params().putBool("ShowError", status);
+      if (state) {
+        QUIState::ui_state.scene.show_error = true;
+      } else {
+        QUIState::ui_state.scene.show_error = false;
+      }
+    });
+  }
+};
+
 // 오픈파일럿 미리보기
 class OpenpilotView : public AbstractControl {
   Q_OBJECT

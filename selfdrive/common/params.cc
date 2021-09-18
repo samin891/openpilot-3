@@ -322,6 +322,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"GitPullOnBoot", PERSISTENT},
     {"LiveSteerRatioPercent", PERSISTENT},
     {"StoppingDistAdj", PERSISTENT},
+    {"ShowError", PERSISTENT},
 };
 
 } // namespace

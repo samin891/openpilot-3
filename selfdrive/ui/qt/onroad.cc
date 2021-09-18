@@ -58,11 +58,11 @@ void OnroadWindow::updateState(const UIState &s) {
       // car is started, but controlsState hasn't been seen at all
       if (!s.scene.is_OpenpilotViewEnabled) {
         // opkr
-        if (QFileInfo::exists("/data/log/error.txt")) {
+        if (QFileInfo::exists("/data/log/error.txt") && s.scene.show_error) {
           QFileInfo fileInfo;
           fileInfo.setFile("/data/log/error.txt");
           QDateTime modifiedtime = fileInfo.lastModified();
-          QString modified_time = modifiedtime.toString("yyyy-MM-dd hh:mm:ss     ");
+          QString modified_time = modifiedtime.toString("yyyy-MM-dd hh:mm:ss ");
           const std::string txt = util::read_file("/data/log/error.txt");
           RichTextDialog::alert(modified_time + QString::fromStdString(txt), this);
         }
@@ -73,11 +73,11 @@ void OnroadWindow::updateState(const UIState &s) {
       bgColor = bg_colors[STATUS_ALERT];
       if (!s.scene.is_OpenpilotViewEnabled) {
         // opkr
-        if (QFileInfo::exists("/data/log/error.txt")) {
+        if (QFileInfo::exists("/data/log/error.txt") && s.scene.show_error) {
           QFileInfo fileInfo;
           fileInfo.setFile("/data/log/error.txt");
           QDateTime modifiedtime = fileInfo.lastModified();
-          QString modified_time = modifiedtime.toString("yyyy-MM-dd hh:mm:ss     ");
+          QString modified_time = modifiedtime.toString("yyyy-MM-dd hh:mm:ss ");
           const std::string txt = util::read_file("/data/log/error.txt");
           RichTextDialog::alert(modified_time + QString::fromStdString(txt), this);
         }

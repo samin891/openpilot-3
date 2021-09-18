@@ -365,6 +365,7 @@ static void update_params(UIState *s) {
     scene.kr_date_show = params.getBool("KRDateShow");
     scene.kr_time_show = params.getBool("KRTimeShow");
     scene.steer_wind_down = params.getBool("SteerWindDown");
+    scene.show_error = params.getBool("ShowError");
 
     if (scene.autoScreenOff > 0) {
       scene.nTime = scene.autoScreenOff * 60 * UI_FREQ;
