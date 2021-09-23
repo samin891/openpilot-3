@@ -15,7 +15,7 @@ typedef struct LiveMapDataResult {
       float speedLimitDistance;  // Float32;
       float safetySign;    // Float32;
       float roadCurvature;    // Float32;
-      float turnInfo;    // Float32;
+      float turnInfo;    // int;
       float distanceToTurn;    // Float32;
       //bool  mapValid;    // bool;
       //bool  mapEnable;    // bool;
@@ -144,7 +144,7 @@ int main() {
       framed.setSpeedLimitDistance( res.speedLimitDistance );  // raw_target_speed_map_dist Float32;
       framed.setSafetySign( res.safetySign ); // map_sign Float32;
       // framed.setRoadCurvature( res.roadCurvature ); // road_curvature Float32;
-      framed.setTurnInfo( res.turnInfo );  // Float32;
+      framed.setTurnInfo( res.turnInfo );  // int;
       framed.setDistanceToTurn( res.distanceToTurn );  // Float32;
       framed.setTs( res.tv_sec );
       //framed.setMapEnable( res.mapEnable );
@@ -152,21 +152,21 @@ int main() {
 
     /*
     signtype
-    118, 127 ¾î¸°ÀÌº¸È£±¸¿ª
-    111 ¿À¸¥ÂÊ ±ÞÄ¿ºê
-    112 ¿ÞÂÊ ±ÞÄ¿ºê
-    113 ±ÁÀºµµ·Î
-    124 °ú¼Ó¹æÁöÅÎ
-    198 Â÷¼±º¯°æ±ÝÁö½ÃÀÛ
-    199 Â÷¼±º¯°æ±ÝÁöÁ¾·á
-    129 ÁÖÁ¤Â÷±ÝÁö±¸°£
-    123 Ã¶±æ°Ç³Î¸ñ
-    246 ¹ö½ºÀü¿ëÂ÷·Î´Ü¼Ó
-    247 °úÀû´Ü¼Ó
-    248 ±³ÅëÁ¤º¸¼öÁý
-    249 Ãß¿ù±ÝÁö±¸°£
-    250 °«±æ´Ü¼Ó
-    251 ÀûÀçºÒ·®´Ü¼Ó
+    118, 127 ï¿½î¸°ï¿½Ìºï¿½È£ï¿½ï¿½ï¿½ï¿½
+    111 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¿ï¿½ï¿½
+    112 ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¿ï¿½ï¿½
+    113 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    124 ï¿½ï¿½ï¿½Ó¹ï¿½ï¿½ï¿½ï¿½ï¿½
+    198 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    199 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    129 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    123 Ã¶ï¿½ï¿½Ç³Î¸ï¿½
+    246 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î´Ü¼ï¿½
+    247 ï¿½ï¿½ï¿½ï¿½ï¿½Ü¼ï¿½
+    248 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    249 ï¿½ß¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    250 ï¿½ï¿½ï¿½ï¿½Ü¼ï¿½
+    251 ï¿½ï¿½ï¿½ï¿½Ò·ï¿½ï¿½Ü¼ï¿½
 
 
     */  
