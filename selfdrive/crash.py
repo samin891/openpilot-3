@@ -27,6 +27,8 @@ def bind_extra(**kwargs) -> None:
 
 # opkr
 def save_exception(exc_text):
+  if not os.path.exists('/data/log'):
+    os.makedirs('/data/log')
   log_file = '/data/log/error.txt'
   with open(log_file, 'w') as f:
     f.write(exc_text)
