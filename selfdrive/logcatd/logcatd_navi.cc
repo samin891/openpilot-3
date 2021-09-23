@@ -19,7 +19,7 @@ typedef struct LiveNaviDataResult {
       int   turnInfo;    // Int32;
       int   distanceToTurn;    // Int32;      
       bool  mapValid;    // bool;
-      int   mapEnable;    // bool;
+      int   mapEnable;    // Int32;
 
       double  dArrivalDistance;    // unit:  M
       double  dArrivalTimeSec;    // unit: sec
