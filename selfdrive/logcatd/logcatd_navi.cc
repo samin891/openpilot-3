@@ -153,14 +153,14 @@ int main() {
         event.mapEnable = Params().getInt("OpkrMapEnable");
       }
       
-      break;
+      
       // 2. MAP data Event.
       traffic_type = traffic_camera( event.safetySign, event.speedLimitDistance );
       if( strcmp( entry.tag, "opkrspddist" ) == 0 )  // 1
       {
         event.speedLimitDistance = atoi( entry.message );
         opkr = 1;
-      }      
+      } 
       else if( strcmp( entry.tag, "opkrspdlimit" ) == 0 ) // 2
       {
         event.speedLimit = atoi( entry.message );
@@ -187,7 +187,7 @@ int main() {
         event.distanceToTurn = atoi( entry.message );
       }
 
-
+      break;
       
       
       // 3. Message hide process.
