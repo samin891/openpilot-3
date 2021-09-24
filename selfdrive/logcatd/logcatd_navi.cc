@@ -225,7 +225,7 @@ int main() {
          event.safetySign = 0;
       }
            
-      break;
+
       /*
       MessageBuilder msg;
       auto framed = msg.initEvent().initLiveNaviData();
@@ -256,7 +256,7 @@ int main() {
       pm.send("liveNaviData", msg);
      */
 
-      /*
+ 
       // OPKR 호환.
       MessageBuilder msg2;
       auto framed2 = msg2.initEvent().initLiveMapData();
@@ -268,7 +268,7 @@ int main() {
       framed2.setTs( event.tv_sec );
 
       pm.send("liveMapData", msg2);
-       */
+
     }
 
     android_logger_list_free(logger_list);
