@@ -144,7 +144,7 @@ int main() {
       last_log_time.tv_sec = entry.tv_sec;
       last_log_time.tv_nsec = entry.tv_nsec;
 
-      break;
+      // break;
 
       dCurrentSec = entry.tv_sec + 1.0e-9*entry.tv_nsec;
       long nDelta2;
@@ -152,7 +152,7 @@ int main() {
       if( nDelta2 >= 5 )
       {
         nLastTime = entry.tv_sec;
-        event.mapEnable = Params().getInt("OpkrMapEnable");
+       // event.mapEnable = Params().getInt("OpkrMapEnable");
       }
       
       
