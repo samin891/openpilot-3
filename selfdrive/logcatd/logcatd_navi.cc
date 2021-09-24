@@ -256,7 +256,8 @@ int main() {
 /*
       pm.send("liveNaviData", msg);
      */
-
+      
+      break;
  
       // OPKR 호환.
       MessageBuilder msg2;
