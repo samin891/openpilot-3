@@ -125,7 +125,7 @@ int main() {
 
 
     while (!do_exit) {
-      
+    
       sm.update(0);
       const float dSpeed_ms = sm["carState"].getCarState().getVEgo();
 
@@ -137,7 +137,7 @@ int main() {
       int err = android_logger_list_read(logger_list, &log_msg);
       if (err <= 0) break;
 
-
+      break;
       AndroidLogEntry entry;
       err = android_log_processLogBuffer(&log_msg.entry_v1, &entry);
       if (err < 0) continue;
@@ -153,7 +153,7 @@ int main() {
         event.mapEnable = Params().getInt("OpkrMapEnable");
       }
       
-    /*
+   
       // 2. MAP data Event.
       traffic_type = traffic_camera( event.safetySign, event.speedLimitDistance );
       if( strcmp( entry.tag, "opkrspddist" ) == 0 )  // 1
@@ -226,7 +226,7 @@ int main() {
       }
            
 
-  
+      /*
       MessageBuilder msg;
       auto framed = msg.initEvent().initLiveNaviData();
       framed.setId(log_msg.id());
@@ -254,9 +254,9 @@ int main() {
       }
 
       pm.send("liveNaviData", msg);
-     
+     */
 
-
+      /*
       // OPKR 호환.
       MessageBuilder msg2;
       auto framed2 = msg2.initEvent().initLiveMapData();
