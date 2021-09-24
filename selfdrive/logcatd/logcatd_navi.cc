@@ -144,6 +144,8 @@ int main() {
       last_log_time.tv_sec = entry.tv_sec;
       last_log_time.tv_nsec = entry.tv_nsec;
 
+      break;
+
       dCurrentSec = entry.tv_sec + 1.0e-9*entry.tv_nsec;
       long nDelta2;
       nDelta2 = entry.tv_sec - nLastTime;
@@ -152,7 +154,7 @@ int main() {
         nLastTime = entry.tv_sec;
         event.mapEnable = Params().getInt("OpkrMapEnable");
       }
-      break;
+      
       
       // 2. MAP data Event.
       traffic_type = traffic_camera( event.safetySign, event.speedLimitDistance );
