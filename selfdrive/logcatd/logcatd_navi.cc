@@ -152,7 +152,7 @@ int main() {
         nLastTime = entry.tv_sec;
         event.mapEnable = Params().getInt("OpkrMapEnable");
       }
-      
+      break;
       
       // 2. MAP data Event.
       traffic_type = traffic_camera( event.safetySign, event.speedLimitDistance );
@@ -257,7 +257,7 @@ int main() {
       pm.send("liveNaviData", msg);
      */
       
-      break;
+      
  
       // OPKR 호환.
       MessageBuilder msg2;
