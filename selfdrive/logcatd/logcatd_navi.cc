@@ -254,7 +254,7 @@ int main() {
       }
 
       pm.send("liveNaviData", msg);
-      */
+     
 
 
       // OPKR 호환.
@@ -268,6 +268,7 @@ int main() {
       framed2.setTs( event.tv_sec );
 
       pm.send("liveMapData", msg2);
+       */
     }
 
     android_logger_list_free(logger_list);
