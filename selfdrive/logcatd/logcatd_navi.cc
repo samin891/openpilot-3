@@ -102,7 +102,7 @@ int main() {
   int      opkr =0;
   double   dArrivalDistanceStop = 0;
 
-  double  dEventLastSec;
+  double  dEventLastSec, dEventHideSec;
   double  dCurrentSec;
 
   ExitHandler do_exit;
@@ -131,7 +131,7 @@ int main() {
 
       struct timeval t;
       gettimeofday(&t, NULL);
-      dCurrentSec = t.tv_sec + 1.0e-6*t.tv_usec;
+      dCurrentSec = t.tv_sec + 1.0e-9*t.tv_usec;
   
       log_msg log_msg;
       int err = android_logger_list_read(logger_list, &log_msg);
@@ -201,7 +201,14 @@ int main() {
           event.dArrivalTimeSec = event.dHideTimeSec - dCurrentSec;
           event.dArrivalDistance =  event.dArrivalTimeSec * dSpeed_ms;
           dArrivalDistanceStop = event.dArrivalDistance;
-          if( dEventLastSec > 5 )   opkr = 0;
+
+          dEventHideSec = 3;
+          if( dSpeed_ms < 10 )
+            dEventHideSec = 5;
+          else if( dSpeed_ms < 15 )
+            dEventHideSec = 4;
+
+          if( dEventLastSec > dEventHideSec )   opkr = 0;
           else if( event.dArrivalTimeSec < 1.5 )  opkr = 0;
         }
         else
@@ -255,7 +262,7 @@ int main() {
        printf("logcat ID(%d) - PID=%d tag=%d.[%s] \n", log_msg.id(),  entry.pid,  entry.tid, entry.tag);
        printf("entry.message=[%s]  \n", entry.message );
       //}
-/*
+     /*
       pm.send("liveNaviData", msg);
      */
       
