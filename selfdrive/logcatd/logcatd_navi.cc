@@ -260,11 +260,11 @@ int main() {
       // OPKR 호환.
       MessageBuilder msg2;
       auto framed2 = msg2.initEvent().initLiveMapData();
-      framed2.setSpeedLimit( event.speedLimit );  // Float32;
-      framed2.setSpeedLimitDistance( event.speedLimitDistance );  // raw_target_speed_map_dist Float32;
-      framed2.setSafetySign( event.safetySign ); // map_sign Float32;
-      framed2.setTurnInfo( event.turnInfo );  // Float32;
-      framed2.setDistanceToTurn( event.distanceToTurn );  // Float32;
+      framed2.setSpeedLimit( event.speedLimit );  
+      framed2.setSpeedLimitDistance( event.speedLimitDistance );
+      framed2.setSafetySign( event.safetySign );
+      framed2.setTurnInfo( event.turnInfo );  
+      framed2.setDistanceToTurn( event.distanceToTurn ); 
       framed2.setTs( event.tv_sec );
 
       pm.send("liveMapData", msg2);
