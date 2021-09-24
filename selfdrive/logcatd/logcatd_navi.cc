@@ -187,7 +187,7 @@ int main() {
         event.distanceToTurn = atoi( entry.message );
       }
 
-      break;
+
       
       
       // 3. Message hide process.
@@ -225,7 +225,7 @@ int main() {
          event.safetySign = 0;
       }
            
-
+      break;
       /*
       MessageBuilder msg;
       auto framed = msg.initEvent().initLiveNaviData();
