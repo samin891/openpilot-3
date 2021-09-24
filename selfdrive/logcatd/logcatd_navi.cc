@@ -137,7 +137,7 @@ int main() {
       int err = android_logger_list_read(logger_list, &log_msg);
       if (err <= 0) break;
 
-      break;
+      
       AndroidLogEntry entry;
       err = android_log_processLogBuffer(&log_msg.entry_v1, &entry);
       if (err < 0) continue;
@@ -153,7 +153,7 @@ int main() {
         event.mapEnable = Params().getInt("OpkrMapEnable");
       }
       
-   
+      break;
       // 2. MAP data Event.
       traffic_type = traffic_camera( event.safetySign, event.speedLimitDistance );
       if( strcmp( entry.tag, "opkrspddist" ) == 0 )  // 1
