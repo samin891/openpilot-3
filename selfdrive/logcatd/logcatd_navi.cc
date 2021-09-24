@@ -153,7 +153,7 @@ int main() {
         event.mapEnable = Params().getInt("OpkrMapEnable");
       }
       
-
+    /*
       // 2. MAP data Event.
       traffic_type = traffic_camera( event.safetySign, event.speedLimitDistance );
       if( strcmp( entry.tag, "opkrspddist" ) == 0 )  // 1
@@ -226,7 +226,7 @@ int main() {
       }
            
 
-      /*
+  
       MessageBuilder msg;
       auto framed = msg.initEvent().initLiveNaviData();
       framed.setId(log_msg.id());
