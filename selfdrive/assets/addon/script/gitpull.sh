@@ -6,7 +6,7 @@ export PATH=/usr/local/bin:/data/data/com.termux/files/usr/bin:/data/data/com.te
 export PYTHONPATH=/data/openpilot
 
 cd /data/openpilot
-ping -c 1 -w 1 google.com &> /dev/null
+ping -q -c 1 -w 1 google.com &> /dev/null
 if [ "$?" == "0" ]; then
   BRANCH=$(git rev-parse --abbrev-ref HEAD)
   HASH=$(git rev-parse HEAD)
