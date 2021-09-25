@@ -27,12 +27,13 @@ def bind_extra(**kwargs) -> None:
 
 # opkr
 def save_exception(exc_text):
-  if not os.path.exists('/data/log'):
-    os.makedirs('/data/log')
-  log_file = '/data/log/error.txt'
-  with open(log_file, 'w') as f:
-    f.write(exc_text)
-    f.close()
+  if "athenad.py" not in exc_text: # ignore athenad.py error
+    if not os.path.exists('/data/log'):
+      os.makedirs('/data/log')
+    log_file = '/data/log/error.txt'
+    with open(log_file, 'w') as f:
+      f.write(exc_text)
+      f.close()
 
 def init() -> None:
   sentry_sdk.init("https://a8dc76b5bfb34908a601d67e2aa8bcf9@o33823.ingest.sentry.io/77924",
