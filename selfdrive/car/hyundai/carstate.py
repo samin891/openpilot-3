@@ -55,7 +55,6 @@ class CarState(CarStateBase):
     self.safetycam_decel_dist_gain = int(Params().get("SafetyCamDecelDistGain", encoding="utf8"))
 
     self.cruiseGapSet_prev = 0
-    self.VSetDis = 0
 
   def update(self, cp, cp2, cp_cam):
     cp_mdps = cp2 if self.CP.mdpsBus == 1 else cp
@@ -102,7 +101,7 @@ class CarState(CarStateBase):
       self.mdps_error_cnt += 1 if cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 else -self.mdps_error_cnt
       ret.steerWarning = self.mdps_error_cnt > 100 #cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0
 
-    #self.VSetDis = cp_scc.vl["SCC11"]["VSetDis"]
+    self.VSetDis = cp_scc.vl["SCC11"]["VSetDis"]
     ret.vSetDis = self.VSetDis
     self.clu_Vanz = cp.vl["CLU11"]["CF_Clu_Vanz"]
     lead_objspd = cp_scc.vl["SCC11"]["ACC_ObjRelSpd"]
@@ -371,7 +370,7 @@ class CarState(CarStateBase):
       ("MainMode_ACC", "SCC11", 1),
       ("SCCInfoDisplay", "SCC11", 0),
       ("AliveCounterACC", "SCC11", 0),
-      ("VSetDis", "SCC11", 0),
+      ("VSetDis", "SCC11", 30),
       ("ObjValid", "SCC11", 0),
       ("DriverAlertDisplay", "SCC11", 0),
       ("TauGapSet", "SCC11", 4),
