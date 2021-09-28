@@ -9,7 +9,7 @@
 #include "selfdrive/hardware/hw.h"
 
 QString getBrand() {
-  return Params().getBool("Passive") ? "dashcam" : "openpilot";
+  return Params().getBool("Passive") ? "대시캠" : "오픈파일럿";
 }
 
 QString getBrandVersion() {
@@ -46,20 +46,20 @@ void clearLayout(QLayout* layout) {
 }
 
 QString timeAgo(const QDateTime &date) {
-  int diff = date.secsTo(QDateTime::currentDateTimeUtc());
+  int diff = date.secsTo(QDateTime::currentDateTime());
 
   QString s;
   if (diff < 60) {
-    s = "now";
+    s = "지금";
   } else if (diff < 60 * 60) {
     int minutes = diff / 60;
-    s = QString("%1 minute%2 ago").arg(minutes).arg(minutes > 1 ? "s" : "");
+    s = QString("%1분 전").arg(minutes);
   } else if (diff < 60 * 60 * 24) {
     int hours = diff / (60 * 60);
-    s = QString("%1 hour%2 ago").arg(hours).arg(hours > 1 ? "s" : "");
+    s = QString("%1시간 전").arg(hours);
   } else if (diff < 3600 * 24 * 7) {
     int days = diff / (60 * 60 * 24);
-    s = QString("%1 day%2 ago").arg(days).arg(days > 1 ? "s" : "");
+    s = QString("%1일 전").arg(days);
   } else {
     s = date.date().toString();
   }

@@ -126,6 +126,21 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     modelLagWarningDEPRECATED @93;
     startupOneplusDEPRECATED @82;
     startupFuzzyFingerprintDEPRECATED @97;
+    laneChangeManual @106;
+    emgButtonManual @107;
+    driverSteering @108;
+    modeChangeOpenpilot @109;
+    modeChangeDistcurv @110;
+    modeChangeDistance @111;
+    modeChangeCurv @112;
+    modeChangeOneway @113;
+    modeChangeMaponly @114;
+    needBrake @115;
+    standStill @116;
+    modelLongAlert @117;
+    isgActive @118;
+    camSpeedDown @119;
+    gapAdjusting @120;
   }
 }
 
@@ -192,6 +207,29 @@ struct CarState {
   leftBlindspot @33 :Bool; # Is there something blocking the left lane change
   rightBlindspot @34 :Bool; # Is there something blocking the right lane change
 
+  brakeLights @19 :Bool;
+  # opkr-tpms
+  tpmsPressureFl @38 :Float32;
+  tpmsPressureFr @39 :Float32;
+  tpmsPressureRl @40 :Float32;
+  tpmsPressureRr @41 :Float32;
+
+  radarDistance @42 :Float32;
+  standStill @43 :Bool;
+  vSetDis @44 :Float32;
+  cruiseButtons @45 :Float32;
+  cruiseAccStatus @46 :Bool;
+  driverAcc @47 :Bool;
+  brakeHold @48 :Bool;    # AutoHold
+  cruiseGapSet @49 :UInt8;
+
+  # opkr
+  safetyDist @50 :Float32;
+  safetySign @51 :Float32;
+  vEgoOP @52 :Float32;  # openpilot speed
+  electGearStep @53 :Int8;
+  isMph @54 :Bool;
+
   struct WheelSpeeds {
     # optional wheel speeds
     fl @0 :Float32;
@@ -207,6 +245,8 @@ struct CarState {
     speedOffset @3 :Float32;
     standstill @4 :Bool;
     nonAdaptive @5 :Bool;
+    modeSel @6 :Int16;
+    cruiseSwState @7 :Int16;
   }
 
   enum GearShifter {
@@ -244,7 +284,6 @@ struct CarState {
   }
 
   errorsDEPRECATED @0 :List(CarEvent.EventName);
-  brakeLightsDEPRECATED @19 :Bool;
 }
 
 # ******* radar state @ 20hz *******
@@ -331,6 +370,9 @@ struct CarControl {
     leftLaneVisible @7: Bool;
     rightLaneDepart @8: Bool;
     leftLaneDepart @9: Bool;
+    leadDistance @10:Float32;
+    leadvRel @11:Float32;
+    leadyRel @12:Float32;
 
     enum VisualAlert {
       # these are the choices from the Honda
@@ -440,6 +482,18 @@ struct CarParams {
   communityFeature @46: Bool;  # true if a community maintained feature is detected
   fingerprintSource @49: FingerprintSource;
   networkLocation @50 :NetworkLocation;  # Where Panda/C2 is integrated into the car's CAN network
+  mdpsBus @62: Int8;
+  sasBus @63: Int8;
+  sccBus @64: Int8;
+  fcaBus @65: Int8;
+  bsmAvailable @66: Bool;
+  lfaAvailable @67: Bool;
+  lvrAvailable @68: Bool;
+  evgearAvailable @69: Bool;
+  emsAvailable @70: Bool;
+  standStill @71: Bool;
+  vCruisekph @72: Float32;
+  resSpeed @73: Float32;
 
   struct LateralParams {
     torqueBP @0 :List(Int32);
@@ -451,7 +505,9 @@ struct CarParams {
     kpV @1 :List(Float32);
     kiBP @2 :List(Float32);
     kiV @3 :List(Float32);
-    kf @4 :Float32;
+    kdBP @4 :List(Float32) = [0.];
+    kdV @5 :List(Float32) = [0.];
+    kf @6 :Float32;
   }
 
   struct LongitudinalPIDTuning {
@@ -461,6 +517,10 @@ struct CarParams {
     kiV @3 :List(Float32);
     deadzoneBP @4 :List(Float32);
     deadzoneV @5 :List(Float32);
+    kdBP @6 :List(Float32) = [0.];
+    kdV @7 :List(Float32) = [0.];
+    kfBP @8 :List(Float32);
+    kfV @9 :List(Float32);
   }
 
   struct LateralINDITuning {

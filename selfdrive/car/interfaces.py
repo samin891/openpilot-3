@@ -10,13 +10,14 @@ from selfdrive.config import Conversions as CV
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX
 from selfdrive.controls.lib.events import Events
 from selfdrive.controls.lib.vehicle_model import VehicleModel
+from common.params import Params
 
 GearShifter = car.CarState.GearShifter
 EventName = car.CarEvent.EventName
 
 # WARNING: this value was determined based on the model's training distribution,
-#          model predictions above this speed can be unpredictable
-MAX_CTRL_SPEED = (V_CRUISE_MAX + 4) * CV.KPH_TO_MS  # 135 + 4 = 86 mph
+#MAX_CTRL_SPEED = (V_CRUISE_MAX + 4) * CV.KPH_TO_MS  # 144 + 4 = 92 mph
+MAX_CTRL_SPEED = 161 * CV.KPH_TO_MS  # 144 + 4 = 92 mph
 ACCEL_MAX = 2.0
 ACCEL_MIN = -3.5
 
@@ -43,6 +44,9 @@ class CarInterfaceBase():
     self.CC = None
     if CarController is not None:
       self.CC = CarController(self.cp.dbc_name, CP, self.VM)
+
+    self.steer_wind_down_enabled = Params().get_bool("SteerWindDown")
+    self.steer_warning_fix_enabled = Params().get_bool("SteerWarningFix")
 
   @staticmethod
   def get_pid_accel_limits(CP, current_speed, cruise_speed):
@@ -88,6 +92,10 @@ class CarInterfaceBase():
     ret.longitudinalTuning.kiV = [1.]
     ret.longitudinalActuatorDelayLowerBound = 0.15
     ret.longitudinalActuatorDelayUpperBound = 0.15
+    ret.longitudinalTuning.kdBP = [0.]
+    ret.longitudinalTuning.kdV = [0.]
+    ret.longitudinalTuning.kfBP = [0.]
+    ret.longitudinalTuning.kfV = [1.]
     return ret
 
   # returns a car.CarState, pass in car.CarControl
@@ -95,7 +103,7 @@ class CarInterfaceBase():
     raise NotImplementedError
 
   # return sendcan, pass in a car.CarControl
-  def apply(self, c):
+  def apply(self, c, sm):
     raise NotImplementedError
 
   def create_common_events(self, cs_out, extra_gears=None, gas_resume_speed=-1, pcm_enable=True):
@@ -106,16 +114,16 @@ class CarInterfaceBase():
     if cs_out.seatbeltUnlatched:
       events.add(EventName.seatbeltNotLatched)
     if cs_out.gearShifter != GearShifter.drive and (extra_gears is None or
-       cs_out.gearShifter not in extra_gears):
+       cs_out.gearShifter not in extra_gears) and cs_out.cruiseState.enabled:
       events.add(EventName.wrongGear)
     if cs_out.gearShifter == GearShifter.reverse:
       events.add(EventName.reverseGear)
-    if not cs_out.cruiseState.available:
+    if not cs_out.cruiseState.available and cs_out.cruiseState.enabled:
       events.add(EventName.wrongCarMode)
     if cs_out.espDisabled:
       events.add(EventName.espDisabled)
-    if cs_out.gasPressed:
-      events.add(EventName.gasPressed)
+    #if cs_out.gasPressed:
+    #  events.add(EventName.gasPressed)
     if cs_out.stockFcw:
       events.add(EventName.stockFcw)
     if cs_out.stockAeb:
@@ -131,7 +139,9 @@ class CarInterfaceBase():
     # Handle permanent and temporary steering faults
     if cs_out.steerError:
       events.add(EventName.steerUnavailable)
-    elif cs_out.steerWarning:
+    elif cs_out.steerWarning and (cs_out.vEgo < 0.1 or cs_out.standstill) and not self.steer_wind_down_enabled and cs_out.steeringAngleDeg < 90:
+      events.add(EventName.isgActive)
+    elif cs_out.steerWarning and not self.steer_wind_down_enabled and not self.steer_warning_fix_enabled:
       # only escalate to the harsher alert after the condition has
       # persisted for 0.5s and we're certain that the user isn't overriding
       if self.steering_unpressed > int(0.5/DT_CTRL) and self.steer_warning > int(0.5/DT_CTRL):

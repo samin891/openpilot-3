@@ -292,6 +292,11 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   offroadPowerUsageUwh @23 :UInt32;
   carBatteryCapacityUwh @25 :UInt32;
 
+  # atom
+  wifiIpAddress @37 :Text;
+  # opkr
+  wifiSSID @38 :Text;
+
   fanSpeedPercentDesired @10 :UInt16;
   started @11 :Bool;
   startedMonoTime @13 :UInt64;
@@ -306,7 +311,9 @@ struct DeviceState @0xa4d8b5af2aa492eb {
 
   # power
   batteryPercent @8 :Int16;
+  batteryStatus @9 :Text;
   batteryCurrent @15 :Int32;
+  batteryVoltage @16 :Int32;
   chargingError @17 :Bool;
   chargingDisabled @18 :Bool;
 
@@ -314,6 +321,7 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   cpuTempC @26 :List(Float32);
   gpuTempC @27 :List(Float32);
   memoryTempC @28 :Float32;
+  batteryTempC @29 :Float32;
   ambientTempC @30 :Float32;
   nvmeTempC @35 :List(Float32);
   modemTempC @36 :List(Float32);
@@ -363,9 +371,6 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   batDEPRECATED @6 :UInt32;
   pa0DEPRECATED @21 :UInt16;
   cpuUsagePercentDEPRECATED @20 :Int8;
-  batteryStatusDEPRECATED @9 :Text;
-  batteryVoltageDEPRECATED @16 :Int32;
-  batteryTempCDEPRECATED @29 :Float32;
 }
 
 struct PandaState @0xa7649e2575e4591e {
@@ -554,6 +559,18 @@ struct ControlsState @0x97ff69c53601abf1 {
 
   cumLagMs @15 :Float32;
   canErrorCounter @57 :UInt32;
+
+  # atom
+  alertTextMsg1  @60 :Text;
+  alertTextMsg2  @61 :Text;
+  # opkr
+  lateralControlMethod  @62 :UInt8;
+  limitSpeedCamera @63 :Float32;
+  limitSpeedCameraDist @64 :Float32;
+  steerRatio @65 :Float32;
+  mapSign @66 :Float32;
+  dynamicTRMode @67 :UInt8;
+  dynamicTRValue @68 :Float32;
 
   lateralControlState :union {
     indiState @52 :LateralINDIState;
@@ -803,6 +820,21 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   speeds @33 :List(Float32);
   jerks @34 :List(Float32);
 
+  # opkr
+  dRel1 @35 :Float32;
+  yRel1 @36 :Float32;
+  vRel1 @37 :Float32;
+  dRel2 @38 :Float32;
+  yRel2 @39 :Float32;
+  vRel2 @40 :Float32;
+  status2 @41 :Bool;
+  targetSpeedCamera @42 :Float32;
+  targetSpeedCameraDist @43 :Float32;
+  mapSign @44 :Float32;
+  onSpeedControl @45 :Bool;
+  dynamicTRMode @46 :UInt8;
+  dynamicTRValue @47 :Float32;
+
   enum LongitudinalPlanSource {
     cruise @0;
     lead0 @1;
@@ -863,6 +895,14 @@ struct LateralPlan @0xe1e9318e2ae8b51e {
   psis @26 :List(Float32);
   curvatures @27 :List(Float32);
   curvatureRates @28 :List(Float32);
+
+  # opkr
+  outputScale @29 :Float32;
+  steerRateCost @30 :Float32;
+  standstillElapsedTime @31 :Float32;
+  vCruiseSet @32 :Float32;
+  vCurvature @33 :Float32;
+  lanelessMode @34 :Bool;
 
   enum Desire {
     none @0;
@@ -1295,24 +1335,17 @@ struct LiveParametersData {
   posenetValid @9 :Bool;
 }
 
-struct LiveMapDataDEPRECATED {
-  speedLimitValid @0 :Bool;
-  speedLimit @1 :Float32;
-  speedAdvisoryValid @12 :Bool;
-  speedAdvisory @13 :Float32;
-  speedLimitAheadValid @14 :Bool;
-  speedLimitAhead @15 :Float32;
-  speedLimitAheadDistance @16 :Float32;
-  curvatureValid @2 :Bool;
-  curvature @3 :Float32;
-  wayId @4 :UInt64;
-  roadX @5 :List(Float32);
-  roadY @6 :List(Float32);
-  lastGps @7: GpsLocationData;
-  roadCurvatureX @8 :List(Float32);
-  roadCurvature @9 :List(Float32);
-  distToTurn @10 :Float32;
-  mapValid @11 :Bool;
+struct LiveMapData {
+  speedLimit @0 :Float32;
+  speedLimitDistance @1 :Float32;
+  safetySign @2 :Float32;
+  roadCurvature @3 :Float32;
+  turnInfo @4 :Int32;
+  distanceToTurn @5 :Int32;
+  ts @6 :UInt64;
+
+  mapValid @7 :Bool;
+  mapEnable @8 :Int32;
 }
 
 struct CameraOdometry {
@@ -1415,6 +1448,8 @@ struct Event {
     deviceState @6 :DeviceState;
     logMessage @18 :Text;
 
+    # Map Info
+    liveMapData @62 :LiveMapData;
 
     # *********** debug ***********
     testJoystick @52 :Joystick;
@@ -1433,7 +1468,6 @@ struct Event {
     cellInfoDEPRECATED @28 :List(Legacy.CellInfo);
     wifiScanDEPRECATED @29 :List(Legacy.WifiScan);
     uiNavigationEventDEPRECATED @50 :Legacy.UiNavigationEvent;
-    liveMapDataDEPRECATED @62 :LiveMapDataDEPRECATED;
     gpsPlannerPointsDEPRECATED @40 :Legacy.GPSPlannerPoints;
     gpsPlannerPlanDEPRECATED @41 :Legacy.GPSPlannerPlan;
     applanixRawDEPRECATED @42 :Data;

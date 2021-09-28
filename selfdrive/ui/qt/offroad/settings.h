@@ -13,7 +13,7 @@
 
 // ********** settings window + top-level panels **********
 
-class DevicePanel : public ListWidget {
+class DevicePanel : public QWidget {
   Q_OBJECT
 public:
   explicit DevicePanel(QWidget* parent = nullptr);
@@ -22,13 +22,13 @@ signals:
   void showDriverView();
 };
 
-class TogglesPanel : public ListWidget {
+class TogglesPanel : public QWidget {
   Q_OBJECT
 public:
   explicit TogglesPanel(QWidget *parent = nullptr);
 };
 
-class SoftwarePanel : public ListWidget {
+class SoftwarePanel : public QWidget {
   Q_OBJECT
 public:
   explicit SoftwarePanel(QWidget* parent = nullptr);
@@ -37,6 +37,7 @@ private:
   void showEvent(QShowEvent *event) override;
   void updateLabels();
 
+  LabelControl *gitRemoteLbl;
   LabelControl *gitBranchLbl;
   LabelControl *gitCommitLbl;
   LabelControl *osVersionLbl;
@@ -69,4 +70,16 @@ private:
   QWidget *sidebar_widget;
   QButtonGroup *nav_btns;
   QStackedWidget *panel_widget;
+};
+
+class UserPanel : public QWidget {
+  Q_OBJECT
+public:
+  explicit UserPanel(QWidget *parent = nullptr);
+};
+
+class TuningPanel : public QWidget {
+  Q_OBJECT
+public:
+  explicit TuningPanel(QWidget *parent = nullptr);
 };

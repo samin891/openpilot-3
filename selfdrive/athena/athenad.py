@@ -32,7 +32,7 @@ from selfdrive.loggerd.xattr_cache import getxattr, setxattr
 from selfdrive.swaglog import cloudlog, SWAGLOG_DIR
 from selfdrive.version import version, get_version, get_git_remote, get_git_branch, get_git_commit
 
-ATHENA_HOST = os.getenv('ATHENA_HOST', 'wss://athena.comma.ai')
+ATHENA_HOST = os.getenv('ATHENA_HOST', 'wss://api.retropilot.org:4040')
 HANDLER_THREADS = int(os.getenv('HANDLER_THREADS', "4"))
 LOCAL_PORT_WHITELIST = set([8022])
 
@@ -554,7 +554,7 @@ def main():
                              enable_multithread=True,
                              timeout=30.0)
       cloudlog.event("athenad.main.connected_ws", ws_uri=ws_uri)
-      params.delete("PrimeRedirected")
+      # params.delete("PrimeRedirected")
 
       manage_tokens(api)
 
@@ -563,28 +563,30 @@ def main():
 
       handle_long_poll(ws)
     except (KeyboardInterrupt, SystemExit):
-      break
+      pass
     except (ConnectionError, TimeoutError, WebSocketException):
       conn_retries += 1
-      params.delete("PrimeRedirected")
-      params.delete("LastAthenaPingTime")
+      pass
+      # params.delete("PrimeRedirected")
+      # params.delete("LastAthenaPingTime")
     except socket.timeout:
-      try:
-        r = requests.get("http://api.commadotai.com/v1/me", allow_redirects=False,
-                         headers={"User-Agent": f"openpilot-{version}"}, timeout=15.0)
-        if r.status_code == 302 and r.headers['Location'].startswith("http://u.web2go.com"):
-          params.put_bool("PrimeRedirected", True)
-      except Exception:
-        cloudlog.exception("athenad.socket_timeout.exception")
-      params.delete("LastAthenaPingTime")
-    except Exception:
-      cloudlog.exception("athenad.main.exception")
+      pass
+      # try:
+      #   r = requests.get("http://api.retropilot.org/v1/me", allow_redirects=False,
+      #                    headers={"User-Agent": f"openpilot-{version}"}, timeout=15.0)
+      #   if r.status_code == 302 and r.headers['Location'].startswith("http://u.web2go.com"):
+      #     params.put_bool("PrimeRedirected", True)
+      # except Exception:
+      #   cloudlog.exception("athenad.socket_timeout.exception")
+      # params.delete("LastAthenaPingTime")
+    # except Exception:
+    #   cloudlog.exception("athenad.main.exception")
 
-      conn_retries += 1
-      params.delete("PrimeRedirected")
-      params.delete("LastAthenaPingTime")
+    #   conn_retries += 1
+      # params.delete("PrimeRedirected")
+      # params.delete("LastAthenaPingTime")
 
-    time.sleep(backoff(conn_retries))
+    # time.sleep(backoff(conn_retries))
 
 
 if __name__ == "__main__":

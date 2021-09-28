@@ -118,6 +118,7 @@ void uno_set_gps_mode(uint8_t mode) {
 }
 
 void uno_set_can_mode(uint8_t mode){
+  mode = CAN_MODE_OBD_CAN2;
   switch (mode) {
     case CAN_MODE_NORMAL:
     case CAN_MODE_OBD_CAN2:
@@ -171,6 +172,19 @@ void uno_set_fan_power(uint8_t percentage){
   // Enable fan power only if percentage is non-zero.
   set_gpio_output(GPIOA, 1, (percentage != 0U));
   fan_set_power(percentage);
+}
+
+uint32_t uno_read_current(void){
+  // No current sense on Uno
+  return 0U;
+}
+
+void uno_set_clock_source_mode(uint8_t mode){
+  UNUSED(mode);
+}
+
+void uno_set_siren(bool enabled){
+  UNUSED(enabled);
 }
 
 void uno_init(void) {
@@ -279,10 +293,10 @@ const board board_uno = {
   .set_can_mode = uno_set_can_mode,
   .usb_power_mode_tick = uno_usb_power_mode_tick,
   .check_ignition = uno_check_ignition,
-  .read_current = unused_read_current,
+  .read_current = uno_read_current,
   .set_fan_power = uno_set_fan_power,
   .set_ir_power = uno_set_ir_power,
   .set_phone_power = uno_set_phone_power,
-  .set_clock_source_mode = unused_set_clock_source_mode,
-  .set_siren = unused_set_siren
+  .set_clock_source_mode = uno_set_clock_source_mode,
+  .set_siren = uno_set_siren
 };

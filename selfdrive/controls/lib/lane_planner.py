@@ -5,13 +5,15 @@ from common.numpy_fast import interp
 from common.realtime import DT_MDL
 from selfdrive.hardware import EON, TICI
 from selfdrive.swaglog import cloudlog
-
+from common.params import Params
+from decimal import Decimal
 
 TRAJECTORY_SIZE = 33
 # camera offset is meters from center car to camera
 if EON:
-  CAMERA_OFFSET = 0.06
-  PATH_OFFSET = 0.0
+  CAMERA_OFFSET = float(Decimal(Params().get("CameraOffsetAdj", encoding="utf8")) * Decimal('0.001'))  # m from center car to camera
+  CAMERA_OFFSET_A = CAMERA_OFFSET - 0.2
+  PATH_OFFSET = float(Decimal(Params().get("PathOffsetAdj", encoding="utf8")) * Decimal('0.001'))  # default 0.0
 elif TICI:
   CAMERA_OFFSET = -0.04
   PATH_OFFSET = -0.04
@@ -43,14 +45,30 @@ class LanePlanner:
     self.camera_offset = -CAMERA_OFFSET if wide_camera else CAMERA_OFFSET
     self.path_offset = -PATH_OFFSET if wide_camera else PATH_OFFSET
 
-  def parse_model(self, md):
+    self.lp_timer = 0
+    self.lp_timer2 = 0
+
+  def parse_model(self, md, sm):
+
+    mode_select = sm['carState'].cruiseState.modeSel
+    if mode_select == 4:
+      lean_offset = -0.2
+    else:
+      lean_offset = 0
+
+    self.lp_timer += DT_MDL
+    if self.lp_timer > 1.0:
+      self.lp_timer = 0.0
+      if Params().get_bool("OpkrLiveTunePanelEnable"):
+        self.camera_offset = float(Decimal(Params().get("CameraOffsetAdj", encoding="utf8")) * Decimal('0.001'))
+
     if len(md.laneLines) == 4 and len(md.laneLines[0].t) == TRAJECTORY_SIZE:
       self.ll_t = (np.array(md.laneLines[1].t) + np.array(md.laneLines[2].t))/2
       # left and right ll x is the same
       self.ll_x = md.laneLines[1].x
       # only offset left and right lane lines; offsetting path does not make sense
-      self.lll_y = np.array(md.laneLines[1].y) - self.camera_offset
-      self.rll_y = np.array(md.laneLines[2].y) - self.camera_offset
+      self.lll_y = np.array(md.laneLines[1].y) - self.camera_offset + lean_offset
+      self.rll_y = np.array(md.laneLines[2].y) - self.camera_offset + lean_offset
       self.lll_prob = md.laneLineProbs[1]
       self.rll_prob = md.laneLineProbs[2]
       self.lll_std = md.laneLineStds[1]
@@ -61,6 +79,11 @@ class LanePlanner:
       self.r_lane_change_prob = md.meta.desireState[log.LateralPlan.Desire.laneChangeRight]
 
   def get_d_path(self, v_ego, path_t, path_xyz):
+    self.lp_timer2 += DT_MDL
+    if self.lp_timer2 > 1.0:
+      self.lp_timer2 = 0.0
+      if Params().get_bool("OpkrLiveTunePanelEnable"):
+        self.path_offset = float(Decimal(Params().get("PathOffsetAdj", encoding="utf8")) * Decimal('0.001'))
     # Reduce reliance on lanelines that are too far apart or
     # will be in a few seconds
     path_xyz[:, 1] -= self.path_offset

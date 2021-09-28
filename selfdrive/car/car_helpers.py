@@ -12,12 +12,14 @@ from selfdrive.car import gen_empty_fingerprint
 from cereal import car
 EventName = car.CarEvent.EventName
 
+CAR_NAME = Params().get("CarModel", encoding="utf8")
 
 def get_startup_event(car_recognized, controller_available, fw_seen):
-  if comma_remote and tested_branch:
-    event = EventName.startup
-  else:
-    event = EventName.startupMaster
+  #if comma_remote and tested_branch:
+  #  event = EventName.startup
+  #else:
+  #  event = EventName.startupMaster
+  event = EventName.startup
 
   if not car_recognized:
     if fw_seen:
@@ -179,6 +181,11 @@ def get_car(logcan, sendcan):
   if candidate is None:
     cloudlog.warning("car doesn't match any fingerprints: %r", fingerprints)
     candidate = "mock"
+  
+  if CAR_NAME is not None:
+    car_name = CAR_NAME
+    car_name = CAR_NAME.rstrip('\n')
+    candidate = car_name
 
   CarInterface, CarController, CarState = interfaces[candidate]
   car_params = CarInterface.get_params(candidate, fingerprints, car_fw)
@@ -187,4 +194,4 @@ def get_car(logcan, sendcan):
   car_params.fingerprintSource = source
   car_params.fuzzyFingerprint = not exact_match
 
-  return CarInterface(car_params, CarController, CarState), car_params
+  return CarInterface(car_params, CarController, CarState), car_params, candidate

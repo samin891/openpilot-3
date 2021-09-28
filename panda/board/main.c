@@ -12,13 +12,7 @@
 #include "power_saving.h"
 #include "safety.h"
 
-#include "drivers/can_common.h"
-
-#ifdef STM32H7
-  #include "drivers/fdcan.h"
-#else
-  #include "drivers/bxcan.h"
-#endif
+#include "drivers/can.h"
 
 #include "obj/gitversion.h"
 
@@ -470,7 +464,6 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
     // **** 0xde: set can bitrate
     case 0xde:
       if (setup->b.wValue.w < BUS_MAX) {
-        // TODO: add sanity check, ideally check if value is correct(from array of correct values)
         can_speed[setup->b.wValue.w] = setup->b.wIndex.w;
         bool ret = can_init(CAN_NUM_FROM_BUS_NUM(setup->b.wValue.w));
         UNUSED(ret);
@@ -624,15 +617,6 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
       heartbeat_disabled = true;
       break;
 #endif
-    // **** 0xde: set CAN FD data bitrate
-    case 0xf9:
-      if (setup->b.wValue.w < CAN_MAX) {
-        // TODO: add sanity check, ideally check if value is correct(from array of correct values)
-        can_data_speed[setup->b.wValue.w] = setup->b.wIndex.w;
-        bool ret = can_init(CAN_NUM_FROM_BUS_NUM(setup->b.wValue.w));
-        UNUSED(ret);
-      }
-      break;
     default:
       puts("NO HANDLER ");
       puth(setup->b.bRequest);
@@ -703,14 +687,6 @@ void tick_handler(void) {
         siren_countdown -= 1U;
       }
 
-      if (controls_allowed) {
-        controls_allowed_countdown = 30U;
-      } else if (controls_allowed_countdown > 0U) {
-        controls_allowed_countdown -= 1U;
-      } else {
-
-      }
-
       if (!heartbeat_disabled) {
         // if the heartbeat has been gone for a while, go to SILENT safety mode and enter power save
         if (heartbeat_counter >= (check_started() ? HEARTBEAT_IGNITION_CNT_ON : HEARTBEAT_IGNITION_CNT_OFF)) {
@@ -718,9 +694,8 @@ void tick_handler(void) {
           puth(heartbeat_counter);
           puts(" seconds. Safety is set to SILENT mode.\n");
 
-          if (controls_allowed_countdown > 0U) {
+          if (controls_allowed) {
             siren_countdown = 5U;
-            controls_allowed_countdown = 0U;
           }
 
           // set flag to indicate the heartbeat was lost
@@ -728,12 +703,16 @@ void tick_handler(void) {
             heartbeat_lost = true;
           }
 
-          if (current_safety_mode != SAFETY_SILENT) {
-            set_safety_mode(SAFETY_SILENT, 0U);
+          if (current_safety_mode != SAFETY_NOOUTPUT) {
+            set_safety_mode(SAFETY_NOOUTPUT, 0U);
           }
-          if (power_save_status != POWER_SAVE_STATUS_ENABLED) {
-            set_power_save_state(POWER_SAVE_STATUS_ENABLED);
-          }
+
+          // if (current_safety_mode != SAFETY_SILENT) {
+          //   set_safety_mode(SAFETY_SILENT, 0U);
+          // }
+          // if (power_save_status != POWER_SAVE_STATUS_ENABLED) {
+          //   set_power_save_state(POWER_SAVE_STATUS_ENABLED);
+          // }
 
           // Also disable IR when the heartbeat goes missing
           current_board->set_ir_power(0U);
@@ -766,7 +745,7 @@ void tick_handler(void) {
       ignition_can_cnt += 1U;
 
       // synchronous safety check
-      safety_tick(current_rx_checks);
+      safety_tick(current_hooks);
     }
 
     loop_counter++;
@@ -834,7 +813,7 @@ int main(void) {
   microsecond_timer_init();
 
   // init to SILENT and can silent
-  set_safety_mode(SAFETY_SILENT, 0);
+  set_safety_mode(SAFETY_NOOUTPUT, 0); // MDPS will hard fault if SAFETY_SILENT set
 
   // enable CAN TXs
   current_board->enable_can_transceivers(true);

@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QPushButton>
+#include <QTimer>
 
 #include "selfdrive/common/util.h"
 #include "selfdrive/hardware/hw.h"
@@ -23,16 +24,26 @@ AbstractAlert::AbstractAlert(bool hasRebootBtn, QWidget *parent) : QFrame(parent
   QHBoxLayout *footer_layout = new QHBoxLayout();
   main_layout->addLayout(footer_layout);
 
-  QPushButton *dismiss_btn = new QPushButton("Dismiss");
+  QPushButton *dismiss_btn = new QPushButton("해제");
   dismiss_btn->setFixedSize(400, 125);
   footer_layout->addWidget(dismiss_btn, 0, Qt::AlignBottom | Qt::AlignLeft);
   QObject::connect(dismiss_btn, &QPushButton::clicked, this, &AbstractAlert::dismiss);
 
   if (hasRebootBtn) {
-    QPushButton *rebootBtn = new QPushButton("Reboot and Update");
+    QPushButton *rebootBtn = new QPushButton("업데이트 및 재시작");
     rebootBtn->setFixedSize(600, 125);
     footer_layout->addWidget(rebootBtn, 0, Qt::AlignBottom | Qt::AlignRight);
     QObject::connect(rebootBtn, &QPushButton::clicked, [=]() { Hardware::reboot(); });
+  } else {
+    QPushButton *recheckBtn = new QPushButton("재등록 시도");
+    recheckBtn->setFixedSize(600, 125);
+    footer_layout->addWidget(recheckBtn, 0, Qt::AlignBottom | Qt::AlignRight);
+    QObject::connect(recheckBtn, &QPushButton::clicked, [=]() {
+      Params().remove("DongleId");
+      QTimer::singleShot(1000, []() {
+        Hardware::reboot();
+      });
+    });
   }
   setStyleSheet(R"(
     * {

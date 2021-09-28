@@ -9,6 +9,7 @@ from common.realtime import sec_since_boot
 from selfdrive.hardware import HARDWARE
 from selfdrive.swaglog import cloudlog
 
+PANDA_OUTPUT_VOLTAGE = 5.28
 CAR_VOLTAGE_LOW_PASS_K = 0.091 # LPF gain for 5s tau (dt/tau / (dt/tau + 1))
 
 # A C2 uses about 1W while idling, and 30h seens like a good shutoff for most cars
@@ -21,6 +22,23 @@ VBATT_INSTANT_PAUSE_CHARGING = 7.0    # Lower limit on the instant car battery v
 MAX_TIME_OFFROAD_S = 30*3600
 MIN_ON_TIME_S = 3600
 
+# Parameters
+def get_battery_capacity():
+  return _read_param("/sys/class/power_supply/battery/capacity", int)
+
+# Helpers
+def _read_param(path, parser, default=0):
+  try:
+    with open(path) as f:
+      return parser(f.read())
+  except Exception:
+    return default
+
+def panda_current_to_actual_current(panda_current):
+  # From white/grey panda schematic
+  return (3.3 - (panda_current * 3.3 / 4096)) / 8.25
+
+
 class PowerMonitoring:
   def __init__(self):
     self.params = Params()
@@ -31,6 +49,8 @@ class PowerMonitoring:
     self.car_voltage_mV = 12e3                  # Low-passed version of pandaState voltage
     self.car_voltage_instant_mV = 12e3          # Last value of pandaState voltage
     self.integration_lock = threading.Lock()
+
+    self.ts_last_charging_ctrl = None
 
     car_battery_capacity_uWh = self.params.get("CarBatteryCapacity")
     if car_battery_capacity_uWh is None:
@@ -90,6 +110,11 @@ class PowerMonitoring:
           # If the battery is discharging, we can use this measurement
           # On C2: this is low by about 10-15%, probably mostly due to UNO draw not being factored in
           current_power = ((HARDWARE.get_battery_voltage() / 1000000) * (HARDWARE.get_battery_current() / 1000000))
+        elif (pandaState.pandaState.pandaType in [log.PandaState.PandaType.whitePanda, log.PandaState.PandaType.greyPanda]) and (pandaState.pandaState.current > 1):
+          # If white/grey panda, use the integrated current measurements if the measurement is not 0
+          # If the measurement is 0, the current is 400mA or greater, and out of the measurement range of the panda
+          # This seems to be accurate to about 5%
+          current_power = (PANDA_OUTPUT_VOLTAGE * panda_current_to_actual_current(pandaState.pandaState.current))
         elif (self.next_pulsed_measurement_time is not None) and (self.next_pulsed_measurement_time <= now):
           # TODO: Figure out why this is off by a factor of 3/4???
           FUDGE_FACTOR = 1.33
@@ -188,3 +213,13 @@ class PowerMonitoring:
     should_shutdown |= ((HARDWARE.get_battery_capacity() < BATT_PERC_OFF) and (not HARDWARE.get_battery_charging()) and ((now - offroad_timestamp) > 60))
     should_shutdown &= started_seen or (now > MIN_ON_TIME_S)
     return should_shutdown
+
+  def charging_ctrl(self, msg, ts, to_discharge, to_charge ):
+    if self.ts_last_charging_ctrl is None or (ts - self.ts_last_charging_ctrl) >= 300.:
+      battery_changing = HARDWARE.get_battery_charging()
+      if self.ts_last_charging_ctrl:
+        if msg.deviceState.batteryPercent >= to_discharge and battery_changing:
+          HARDWARE.set_battery_charging(False)
+        elif msg.deviceState.batteryPercent <= to_charge and not battery_changing:
+          HARDWARE.set_battery_charging(True)
+      self.ts_last_charging_ctrl = ts
