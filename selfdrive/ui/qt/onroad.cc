@@ -57,6 +57,7 @@ void OnroadWindow::updateState(const UIState &s) {
     if (sm.rcv_frame("controlsState") < s.scene.started_frame) {
       // car is started, but controlsState hasn't been seen at all
       if (!s.scene.is_OpenpilotViewEnabled) {
+        alerts->updateAlert(CONTROLS_WAITING_ALERT, bgColor);
         // opkr
         if (QFileInfo::exists("/data/log/error.txt") && s.scene.show_error) {
           QFileInfo fileInfo;
@@ -66,12 +67,12 @@ void OnroadWindow::updateState(const UIState &s) {
           const std::string txt = util::read_file("/data/log/error.txt");
           RichTextDialog::alert(modified_time + QString::fromStdString(txt), this);
         }
-        alerts->updateAlert(CONTROLS_WAITING_ALERT, bgColor);
       }
     } else if ((nanos_since_boot() - sm.rcv_time("controlsState")) / 1e9 > CONTROLS_TIMEOUT) {
       // car is started, but controls is lagging or died
       bgColor = bg_colors[STATUS_ALERT];
       if (!s.scene.is_OpenpilotViewEnabled) {
+        alerts->updateAlert(CONTROLS_UNRESPONSIVE_ALERT, bgColor);
         // opkr
         if (QFileInfo::exists("/data/log/error.txt") && s.scene.show_error) {
           QFileInfo fileInfo;
@@ -81,7 +82,6 @@ void OnroadWindow::updateState(const UIState &s) {
           const std::string txt = util::read_file("/data/log/error.txt");
           RichTextDialog::alert(modified_time + QString::fromStdString(txt), this);
         }
-        alerts->updateAlert(CONTROLS_UNRESPONSIVE_ALERT, bgColor);
       }
     }
   }
