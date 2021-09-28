@@ -102,7 +102,7 @@ class CarState(CarStateBase):
       self.mdps_error_cnt += 1 if cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 else -self.mdps_error_cnt
       ret.steerWarning = self.mdps_error_cnt > 100 #cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0
 
-    self.VSetDis = cp_scc.vl["SCC11"]["VSetDis"]
+    #self.VSetDis = cp_scc.vl["SCC11"]["VSetDis"]
     ret.vSetDis = self.VSetDis
     self.clu_Vanz = cp.vl["CLU11"]["CF_Clu_Vanz"]
     lead_objspd = cp_scc.vl["SCC11"]["ACC_ObjRelSpd"]
