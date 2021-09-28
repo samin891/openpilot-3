@@ -323,7 +323,7 @@ class CarController():
 
     run_speed_ctrl = self.opkr_variablecruise and CS.acc_active and (CS.out.cruiseState.modeSel > 0)
     if not run_speed_ctrl:
-      str_log2 = 'BUS={:1.0f}/{:1.0f}  MODE={}  MDPS={}  LKAS={}  CSG={:1.0f}  LEAD={}  FR={:03.0f}'.format(
+      str_log2 = 'BUS={:1.0f}/{:1.0f}  MODE={}  MDPS={}  LKAS={:1.0f}  CSG={:1.0f}  LEAD={}  FR={:03.0f}'.format(
        CS.CP.mdpsBus, CS.CP.sccBus, CS.out.cruiseState.modeSel, CS.out.steerWarning, CS.lkas_button_on, CS.cruiseGapSet, 0 < CS.lead_distance < 149, self.timer1.sampleTime())
       trace1.printf2( '{}'.format( str_log2 ) )
 
