@@ -52,7 +52,7 @@ class CarInterface(CarInterfaceBase):
     ret.openpilotLongitudinalControl = Params().get_bool("DisableRadar") or ret.sccBus == 2
     ret.safetyParam = 0
 
-    ret.pcmCruise = not ret.radarOffCan
+    ret.pcmCruise = not ret.openpilotLongitudinalControl
 
     ret.steerActuatorDelay = 0.25  # Default delay
     ret.steerRateCost = 0.35
