@@ -35,7 +35,8 @@ class CarInterface(CarInterfaceBase):
 
     ret.carName = "hyundai"
     ret.safetyModel = car.CarParams.SafetyModel.hyundai
-    ret.radarOffCan = RADAR_START_ADDR not in fingerprint[1]
+    #ret.radarOffCan = RADAR_START_ADDR not in fingerprint[1]
+    ret.radarOffCan = False
     ret.standStill = False
 
     ret.mdpsBus = 1 if 593 in fingerprint[1] and 1296 not in fingerprint[1] else 0
