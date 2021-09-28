@@ -55,6 +55,7 @@ class CarState(CarStateBase):
     self.safetycam_decel_dist_gain = int(Params().get("SafetyCamDecelDistGain", encoding="utf8"))
 
     self.cruiseGapSet_prev = 0
+    self.VSetDis = 0
 
   def update(self, cp, cp2, cp_cam):
     cp_mdps = cp2 if self.CP.mdpsBus == 1 else cp
