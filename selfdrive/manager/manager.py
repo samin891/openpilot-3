@@ -214,13 +214,6 @@ def manager_init():
   if comma_remote and not (os.getenv("NOLOG") or os.getenv("NOCRASH") or PC):
     crash.init()
 
-  # ensure shared libraries are readable by apks
-  if EON:
-    os.chmod(BASEDIR, 0o755)
-    os.chmod("/dev/shm", 0o777)
-    os.chmod(os.path.join(BASEDIR, "cereal"), 0o755)
-    os.chmod(os.path.join(BASEDIR, "cereal", "libmessaging_shared.so"), 0o755)
-
   crash.bind_user(id=dongle_id)
   crash.bind_extra(dirty=dirty, origin=origin, branch=branch, commit=commit,
                    device=HARDWARE.get_device_type())
