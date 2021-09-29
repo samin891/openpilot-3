@@ -331,14 +331,10 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
     }
   });
 
-  main_layout->addLayout(presetone_layout);
-  main_layout->addLayout(presettwo_layout);
+  addItem(presetone_layout);
+  addItem(presettwo_layout);
 
-  main_layout->addWidget(horizontal_line());
-
-  main_layout->addWidget(paraminit_btn);
-
-  main_layout->addWidget(horizontal_line());
+  addItem(paraminit_btn);
 
   const char* git_reset = "/data/openpilot/selfdrive/assets/addon/script/git_reset.sh ''";
   auto gitresetbtn = new ButtonControl("Git Reset", "실행");
@@ -347,9 +343,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
       std::system(git_reset);
     }
   });
-  main_layout->addWidget(gitresetbtn);
-
-  main_layout->addWidget(horizontal_line());
+  addItem(gitresetbtn);
 
   const char* gitpull_cancel = "/data/openpilot/selfdrive/assets/addon/script/gitpull_cancel.sh ''";
   auto gitpullcanceltbtn = new ButtonControl("Git Pull 취소", "실행");
@@ -358,9 +352,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
       std::system(gitpull_cancel);
     }
   });
-  main_layout->addWidget(gitpullcanceltbtn);
-
-  main_layout->addWidget(horizontal_line());
+  addItem(gitpullcanceltbtn);
 
   const char* panda_flashing = "/data/openpilot/selfdrive/assets/addon/script/panda_flashing.sh ''";
   auto pandaflashingtbtn = new ButtonControl("판다 플래싱", "실행");
@@ -369,15 +361,10 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
       std::system(panda_flashing);
     }
   });
-  main_layout->addWidget(pandaflashingtbtn);
 
-  main_layout->addWidget(horizontal_line());
-
-  main_layout->addWidget(new SwitchOpenpilot()); // opkr
-
-  main_layout->addWidget(horizontal_line());
-
-  main_layout->addWidget(uninstallBtn);
+  addItem(pandaflashingtbtn);
+  addItem(new SwitchOpenpilot()); // opkr
+  addItem(uninstallBtn);
 
   fs_watch = new QFileSystemWatcher(this);
   QObject::connect(fs_watch, &QFileSystemWatcher::fileChanged, [=](const QString path) {
