@@ -61,11 +61,15 @@ class CarInterface(CarInterfaceBase):
     tire_stiffness_factor = 1.
 
     ret.stoppingControl = True
-    ret.vEgoStopping = 1.0
+    ret.vEgoStopping = 0.5  # 1.0
+    ret.startAccel = -0.2   # 0.8
+    ret.vEgoStarting = 0.5
+    ret.stopAccel = -0.5  # 0.0
+    ret.stoppingDecelRate = 0.2  # 0.8
+    ret.startingAccelRate = 0.8  # 3.2
 
     ret.longitudinalTuning.kpV = [0.1]
     ret.longitudinalTuning.kiV = [0.0]
-    ret.stopAccel = 0.0
 
     # ret.longitudinalTuning.kpBP = [0., 4., 9., 17., 23., 31.]
     # ret.longitudinalTuning.kpV = [1.2, 1.0, 0.8, 0.65, 0.5, 0.4]
@@ -78,8 +82,6 @@ class CarInterface(CarInterfaceBase):
     # ret.longitudinalTuning.kdV = [0.7, 0.65, 0.5, 0.4, 0.3, 0.2]
     # ret.longitudinalTuning.kfBP = [0., 4., 9., 17., 23., 31.]
     # ret.longitudinalTuning.kfV = [1., 1., 1., 1., 1., 1.]
-
-    ret.startAccel = 0.0
 
     ret.longitudinalActuatorDelayUpperBound = 1.0 # s
 

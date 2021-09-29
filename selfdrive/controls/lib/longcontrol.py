@@ -119,7 +119,7 @@ class LongControl():
       dRel = radarState.leadOne.dRel
       vRel = radarState.leadOne.vRel
     if long_plan.hasLead:
-      stop = True if (dRel < 3.6 and radarState.leadOne.status) else False
+      stop = True if (1 < dRel < 3.6 and radarState.leadOne.status) else False
     else:
       stop = False
 
@@ -183,7 +183,7 @@ class LongControl():
     elif self.long_control_state == LongCtrlState.starting:
       factor = 1
       if long_plan.hasLead:
-        factor = interp(dRel,[3.6,5.0], [1.0,50.0])
+        factor = interp(dRel,[3.6,5.0], [1.0,10.0])
       if output_accel < CP.startAccel:
         output_accel += CP.startingAccelRate * DT_CTRL * factor
       self.reset(CS.vEgo)
