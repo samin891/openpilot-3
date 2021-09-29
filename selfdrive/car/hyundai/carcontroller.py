@@ -509,7 +509,7 @@ class CarController():
           if aReqValue > 0.:
             stock_weight = interp(CS.out.radarDistance, [3., 15, 25.], [0.7, 1.0, 0.])
           elif aReqValue < 0. and self.stopping_dist_adj_enabled:
-            stock_weight = interp(CS.out.radarDistance, [2.5, 3.6, 4.5, 6.0, 25.], [1., 0.25, 0.45, 0.65, 0.])
+            stock_weight = interp(CS.out.radarDistance, [2.5, 3.6, 4.5, 6.0, 25.], [1., 0.1, 0.45, 0.65, 0.])
           elif aReqValue < 0.:
             stock_weight = interp(CS.out.radarDistance, [3., 25.], [1., 0.])
           else:
