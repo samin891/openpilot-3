@@ -461,7 +461,7 @@ class CarController():
         self.acc_standstill = False
     elif CS.out.gasPressed or CS.out.vEgo > 1:
       self.acc_standstill = False
-      self.acc_standstill_timer = 0      
+      self.acc_standstill_timer = 0
     else:
       self.acc_standstill = False
       self.acc_standstill_timer = 0
@@ -482,14 +482,8 @@ class CarController():
         accel = clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
 
         stopping = (actuators.longControlState == LongCtrlState.stopping)
-        set_speed_in_units = hud_speed * (CV.MS_TO_MPH if CS.clu11["CF_Clu_SPEED_UNIT"] == 1 else CV.MS_TO_KPH)
+        set_speed_in_units = set_speed * (CV.MS_TO_MPH if CS.clu11["CF_Clu_SPEED_UNIT"] == 1 else CV.MS_TO_KPH)
         can_sends.extend(create_acc_commands(self.packer, enabled, accel, jerk, int(frame / 2), lead_visible, set_speed_in_units, stopping))
-
-      # 20 Hz LFA MFA message
-      if frame % 5 == 0 and self.car_fingerprint in [CAR.SONATA, CAR.PALISADE, CAR.IONIQ, CAR.KIA_NIRO_EV, CAR.KIA_NIRO_HEV_2021,
-                                                    CAR.IONIQ_EV_2020, CAR.IONIQ_PHEV, CAR.KIA_CEED, CAR.KIA_SELTOS, CAR.KONA_EV,
-                                                    CAR.ELANTRA_2021, CAR.ELANTRA_HEV_2021, CAR.SONATA_HYBRID, CAR.KONA_HEV, CAR.SANTA_FE_2022]:
-        can_sends.append(create_lfahda_mfc(self.packer, enabled))
 
       # 5 Hz ACC options
       if frame % 20 == 0 and CS.CP.openpilotLongitudinalControl:
