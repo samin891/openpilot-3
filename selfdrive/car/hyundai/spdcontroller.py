@@ -5,6 +5,7 @@ import numpy as np
 import cereal.messaging as messaging
 
 from selfdrive.config import Conversions as CV
+from selfdrive.controls.lib.long_mpc import LongitudinalMpc
 from selfdrive.controls.lib.lane_planner import TRAJECTORY_SIZE
 from selfdrive.car.hyundai.values import Buttons
 from common.numpy_fast import interp

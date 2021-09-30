@@ -64,9 +64,15 @@ class CarState(CarStateBase):
     elif speed_kph < LKAS_LIMITS.DISABLE_SPEED:
       self.lkas_allowed = False
 
-    ret.cruiseState.available = cp.vl["CRZ_CTRL"]["CRZ_AVAILABLE"] == 1
+    # if any of the cruize buttons is pressed force state update
+    if any([cp.vl["CRZ_BTNS"]["RES"],
+                cp.vl["CRZ_BTNS"]["SET_P"],
+                cp.vl["CRZ_BTNS"]["SET_M"]]):
+      self.cruise_speed = ret.vEgoRaw
+
+    ret.cruiseState.available = True
     ret.cruiseState.enabled = cp.vl["CRZ_CTRL"]["CRZ_ACTIVE"] == 1
-    ret.cruiseState.speed = cp.vl["CRZ_EVENTS"]["CRZ_SPEED"] * CV.KPH_TO_MS
+    ret.cruiseState.speed = self.cruise_speed
 
     if ret.cruiseState.enabled:
       if not self.lkas_allowed:
@@ -120,8 +126,6 @@ class CarState(CarStateBase):
         ("LKAS_TRACK_STATE", "STEER_RATE", 0),
         ("HANDS_OFF_5_SECONDS", "STEER_RATE", 0),
         ("CRZ_ACTIVE", "CRZ_CTRL", 0),
-        ("CRZ_AVAILABLE", "CRZ_CTRL", 0),
-        ("CRZ_SPEED", "CRZ_EVENTS", 0),
         ("STANDSTILL", "PEDALS", 0),
         ("BRAKE_ON", "PEDALS", 0),
         ("BRAKE_PRESSURE", "BRAKE", 0),
@@ -144,7 +148,6 @@ class CarState(CarStateBase):
       checks += [
         ("ENGINE_DATA", 100),
         ("CRZ_CTRL", 50),
-        ("CRZ_EVENTS", 50),
         ("CRZ_BTNS", 10),
         ("PEDALS", 50),
         ("BRAKE", 50),

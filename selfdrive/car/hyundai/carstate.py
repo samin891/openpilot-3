@@ -54,12 +54,6 @@ class CarState(CarStateBase):
     self.on_speed_control = False
     self.safetycam_decel_dist_gain = int(Params().get("SafetyCamDecelDistGain", encoding="utf8"))
 
-    self.cruiseGapSet = 0
-    self.cruiseGapSet_prev = 0
-    self.lead_distance = 0
-    self.VSetDis = 0
-    self.lead_objspd = 0
-
   def update(self, cp, cp2, cp_cam):
     cp_mdps = cp2 if self.CP.mdpsBus == 1 else cp
     cp_sas = cp2 if self.CP.sasBus else cp
@@ -105,7 +99,11 @@ class CarState(CarStateBase):
       self.mdps_error_cnt += 1 if cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 else -self.mdps_error_cnt
       ret.steerWarning = self.mdps_error_cnt > 100 #cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0
 
+    self.VSetDis = cp_scc.vl["SCC11"]["VSetDis"]
+    ret.vSetDis = self.VSetDis
     self.clu_Vanz = cp.vl["CLU11"]["CF_Clu_Vanz"]
+    lead_objspd = cp_scc.vl["SCC11"]["ACC_ObjRelSpd"]
+    self.lead_objspd = lead_objspd * CV.MS_TO_KPH
     self.Mdps_ToiUnavail = cp_mdps.vl["MDPS12"]["CF_Mdps_ToiUnavail"]
     self.driverOverride = cp.vl["TCS13"]["DriverOverride"]
     if self.driverOverride == 1:
@@ -119,6 +117,9 @@ class CarState(CarStateBase):
     ret.cruiseState.available = (cp_scc.vl["SCC11"]["MainMode_ACC"] != 0) if not self.no_radar else \
                                       cp.vl["EMS16"]["CRUISE_LAMP_M"] != 0
 
+
+    ret.cruiseState.standstill = cp_scc.vl["SCC11"]["SCCInfoDisplay"] == 4. if not self.no_radar else False
+    self.cruiseState_standstill = ret.cruiseState.standstill
     self.is_set_speed_in_mph = bool(cp.vl["CLU11"]["CF_Clu_SPEED_UNIT"])
     ret.isMph = self.is_set_speed_in_mph
     
@@ -188,7 +189,7 @@ class CarState(CarStateBase):
     self.safety_dist = cp.vl["NAVI"]["OPKR_S_Dist"]
     self.safety_sign_check = cp.vl["NAVI"]["OPKR_S_Sign"]
     self.safety_block_remain_dist = cp.vl["NAVI"]["OPKR_SBR_Dist"]
-    self.is_highway = cp_scc.vl["SCC11"]["Navi_SCC_Camera_Act"] != 0. if not self.no_radar else False
+    self.is_highway = cp_scc.vl["SCC11"]["Navi_SCC_Camera_Act"] != 0.
     if self.safety_sign_check in [24., 25., 26.] and not self.is_highway and 29 < ret.cruiseState.speed*CV.MS_TO_KPH < 69:
       self.safety_sign = 30.
       self.safety_sign_last = self.safety_sign
@@ -241,6 +242,9 @@ class CarState(CarStateBase):
       ret.safetyDist = 0
       self.on_speed_control = False
 
+    self.cruiseGapSet = cp_scc.vl["SCC11"]["TauGapSet"]
+    ret.cruiseGapSet = self.cruiseGapSet
+
     # Gear Selection via Cluster - For those Kia/Hyundai which are not fully discovered, we can use the Cluster Indicator for Gear Selection,
     # as this seems to be standard over all cars, but is not the preferred method.
     if self.CP.carFingerprint in FEATURES["use_cluster_gears"]:
@@ -259,13 +263,12 @@ class CarState(CarStateBase):
     else:
       ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
 
-    if not self.CP.openpilotLongitudinalControl or self.CP.sccBus == 2:
-      if self.CP.fcaBus != -1 or self.CP.carFingerprint in FEATURES["use_fca"]:
-        ret.stockAeb = cp_fca.vl["FCA11"]["FCA_CmdAct"] != 0
-        ret.stockFcw = cp_fca.vl["FCA11"]["CF_VSM_Warn"] == 2
-      elif not self.CP.radarOffCan:
-        ret.stockAeb = cp_scc.vl["SCC12"]["AEB_CmdAct"] != 0
-        ret.stockFcw = cp_scc.vl["SCC12"]["CF_VSM_Warn"] == 2
+    if self.CP.fcaBus != -1 or self.CP.carFingerprint in FEATURES["use_fca"]:
+      ret.stockAeb = cp_fca.vl["FCA11"]["FCA_CmdAct"] != 0
+      ret.stockFcw = cp_fca.vl["FCA11"]["CF_VSM_Warn"] == 2
+    elif not self.CP.radarOffCan:
+      ret.stockAeb = cp_scc.vl["SCC12"]["AEB_CmdAct"] != 0
+      ret.stockFcw = cp_scc.vl["SCC12"]["CF_VSM_Warn"] == 2
 
     # Blind Spot Detection and Lane Change Assist signals
     if self.CP.bsmAvailable or self.CP.enableBsm:
@@ -288,31 +291,22 @@ class CarState(CarStateBase):
     if self.CP.carFingerprint in FEATURES["send_hda_mfa"]:
       self.lfahda = copy.copy(cp_cam.vl["LFAHDA_MFC"])
 
+      
+
+
     ret.brakeHold = cp.vl["TCS15"]["AVH_LAMP"] == 2 # 0 OFF, 1 ERROR, 2 ACTIVE, 3 READY
     self.brakeHold = ret.brakeHold
     self.brake_error = cp.vl["TCS13"]["ACCEnable"] == 3 # 0 ACC CONTROL ENABLED, 1-3 ACC CONTROL DISABLED
     self.steer_state = cp_mdps.vl["MDPS12"]["CF_Mdps_ToiActive"] #0 NOT ACTIVE, 1 ACTIVE
+    self.lead_distance = cp_scc.vl["SCC11"]["ACC_ObjDist"] if not self.no_radar else 0
 
+    ret.radarDistance = cp_scc.vl["SCC11"]["ACC_ObjDist"] if not self.no_radar else 0
     self.lkas_error = cp_cam.vl["LKAS11"]["CF_Lkas_LdwsSysState"] == 7
     if not self.lkas_error:
       self.lkas_button_on = cp_cam.vl["LKAS11"]["CF_Lkas_LdwsSysState"]
     
-    if not self.no_radar or self.CP.sccBus == 2:
-      self.lead_distance = cp_scc.vl["SCC11"]["ACC_ObjDist"]
-      ret.radarDistance = cp_scc.vl["SCC11"]["ACC_ObjDist"]
-      self.VSetDis = cp_scc.vl["SCC11"]["VSetDis"]
-      ret.vSetDis = self.VSetDis
-      lead_objspd = cp_scc.vl["SCC11"]["ACC_ObjRelSpd"]
-      self.lead_objspd = lead_objspd * CV.MS_TO_KPH
-      ret.cruiseAccStatus = cp_scc.vl["SCC12"]["ACCMode"] == 1
-      ret.driverAcc = self.driverOverride == 1
-      ret.cruiseState.standstill = cp_scc.vl["SCC11"]["SCCInfoDisplay"] == 4.
-      self.cruiseState_standstill = ret.cruiseState.standstill
-      self.cruiseGapSet = cp_scc.vl["SCC11"]["TauGapSet"]
-      ret.cruiseGapSet = self.cruiseGapSet
-      if self.cruiseGapSet_prev != self.cruiseGapSet:
-        self.cruiseGapSet_prev = self.cruiseGapSet
-        Params().put("CruiseGapNow", str(int(self.cruiseGapSet)))
+    ret.cruiseAccStatus = cp_scc.vl["SCC12"]["ACCMode"] == 1
+    ret.driverAcc = self.driverOverride == 1
 
     return ret
 
@@ -368,16 +362,6 @@ class CarState(CarStateBase):
       ("CF_Lvr_CruiseSet", "LVR12", 0),
       ("CRUISE_LAMP_M", "EMS16", 0),
 
-      ("UNIT", "TPMS11", 0),
-      ("PRESSURE_FL", "TPMS11", 0),
-      ("PRESSURE_FR", "TPMS11", 0),
-      ("PRESSURE_RL", "TPMS11", 0),
-      ("PRESSURE_RR", "TPMS11", 0),
-
-      ("OPKR_S_Dist", "NAVI", 0),
-      ("OPKR_S_Sign", "NAVI", 31),
-      ("OPKR_SBR_Dist", "NAVI", 0),
-
       ("MainMode_ACC", "SCC11", 1),
       ("SCCInfoDisplay", "SCC11", 0),
       ("AliveCounterACC", "SCC11", 0),
@@ -393,6 +377,7 @@ class CarState(CarStateBase):
       ("Navi_SCC_Curve_Act", "SCC11", 0),
       ("Navi_SCC_Camera_Act", "SCC11", 0),
       ("Navi_SCC_Camera_Status", "SCC11", 2),
+
       ("ACCMode", "SCC12", 0),
       ("CF_VSM_Prefill", "SCC12", 0),
       ("CF_VSM_DecCmdAct", "SCC12", 0),
@@ -414,14 +399,26 @@ class CarState(CarStateBase):
       ("AEB_StopReq", "SCC12", 0),
       ("CR_VSM_Alive", "SCC12", 0),
       ("CR_VSM_ChkSum", "SCC12", 0),
+
       ("SCCDrvModeRValue", "SCC13", 2),
       ("SCC_Equip", "SCC13", 1),
       ("AebDrvSetStatus", "SCC13", 0),
+
       ("JerkUpperLimit", "SCC14", 0),
       ("JerkLowerLimit", "SCC14", 0),
       ("SCCMode2", "SCC14", 0),
       ("ComfortBandUpper", "SCC14", 0),
       ("ComfortBandLower", "SCC14", 0),
+
+      ("UNIT", "TPMS11", 0),
+      ("PRESSURE_FL", "TPMS11", 0),
+      ("PRESSURE_FR", "TPMS11", 0),
+      ("PRESSURE_RL", "TPMS11", 0),
+      ("PRESSURE_RR", "TPMS11", 0),
+
+      ("OPKR_S_Dist", "NAVI", 0),
+      ("OPKR_S_Sign", "NAVI", 31),
+      ("OPKR_SBR_Dist", "NAVI", 0),
     ]
 
     checks = [
@@ -435,7 +432,6 @@ class CarState(CarStateBase):
       ("CGW4", 5),
       ("WHL_SPD11", 50),
     ]
-
     if CP.sccBus == 0 and CP.pcmCruise:
       checks += [
         ("SCC11", 50),

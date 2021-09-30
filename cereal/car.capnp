@@ -334,22 +334,12 @@ struct CarControl {
 
   struct Actuators {
     # range from 0.0 - 1.0
-    gasDEPRECATED @0: Float32;
-    brakeDEPRECATED @1: Float32;
+    gas @0: Float32;
+    brake @1: Float32;
     # range from -1.0 - 1.0
     steer @2: Float32;
     steeringAngleDeg @3: Float32;
-
     accel @4: Float32; # m/s^2
-    longControlState @5: LongControlState;
-
-    enum LongControlState @0xe40f3a917d908282{
-      off @0;
-      pid @1;
-      stopping @2;
-      starting @3;
-    }
-
   }
 
   struct CruiseControl {
@@ -428,10 +418,10 @@ struct CarParams {
 
   steerMaxBP @11 :List(Float32);
   steerMaxV @12 :List(Float32);
-  gasMaxBPDEPRECATED @13 :List(Float32);
-  gasMaxVDEPRECATED @14 :List(Float32);
-  brakeMaxBPDEPRECATED @15 :List(Float32);
-  brakeMaxVDEPRECATED @16 :List(Float32);
+  gasMaxBP @13 :List(Float32);
+  gasMaxV @14 :List(Float32);
+  brakeMaxBP @15 :List(Float32);
+  brakeMaxV @16 :List(Float32);
 
   # things about the car in the manual
   mass @17 :Float32;            # [kg] curb weight: all fluids no cargo
@@ -457,21 +447,17 @@ struct CarParams {
   steerLimitTimer @47 :Float32;  # time before steerLimitAlert is issued
 
   vEgoStopping @29 :Float32; # Speed at which the car goes into stopping state
-  vEgoStarting @59 :Float32; # Speed at which the car goes into starting state
   directAccelControl @30 :Bool; # Does the car have direct accel control or just gas/brake
   stoppingControl @31 :Bool; # Does the car allows full control even at lows speeds when stopping
   startAccel @32 :Float32; # Required acceleraton to overcome creep braking
-  stopAccel @60 :Float32; # Required acceleraton to keep vehicle stationary
   steerRateCost @33 :Float32; # Lateral MPC cost on steering rate
   steerControlType @34 :SteerControlType;
   radarOffCan @35 :Bool; # True when radar objects aren't visible on CAN
   minSpeedCan @51 :Float32; # Minimum vehicle speed from CAN (below this value drops to 0)
-  stoppingDecelRate @52 :Float32; # m/s^2/s while trying to stop
-  startingAccelRate @53 :Float32; # m/s^2/s while trying to start
+  stoppingBrakeRate @52 :Float32; # brake_travel/s while trying to stop
+  startingBrakeRate @53 :Float32; # brake_travel/s while releasing on restart
 
   steerActuatorDelay @36 :Float32; # Steering wheel actuator delay in seconds
-  longitudinalActuatorDelayLowerBound @61 :Float32; # Gas/Brake actuator delay in seconds, lower bound
-  longitudinalActuatorDelayUpperBound @58 :Float32; # Gas/Brake actuator delay in seconds, upper bound
   openpilotLongitudinalControl @37 :Bool; # is openpilot doing the longitudinal control?
   carVin @38 :Text; # VIN number queried during fingerprinting
   dashcamOnly @41: Bool;
@@ -482,18 +468,18 @@ struct CarParams {
   communityFeature @46: Bool;  # true if a community maintained feature is detected
   fingerprintSource @49: FingerprintSource;
   networkLocation @50 :NetworkLocation;  # Where Panda/C2 is integrated into the car's CAN network
-  mdpsBus @62: Int8;
-  sasBus @63: Int8;
-  sccBus @64: Int8;
-  fcaBus @65: Int8;
-  bsmAvailable @66: Bool;
-  lfaAvailable @67: Bool;
-  lvrAvailable @68: Bool;
-  evgearAvailable @69: Bool;
-  emsAvailable @70: Bool;
-  standStill @71: Bool;
-  vCruisekph @72: Float32;
-  resSpeed @73: Float32;
+  mdpsBus @58: Int8;
+  sasBus @59: Int8;
+  sccBus @60: Int8;
+  fcaBus @61: Int8;
+  bsmAvailable @62: Bool;
+  lfaAvailable @63: Bool;
+  lvrAvailable @64: Bool;
+  evgearAvailable @65: Bool;
+  emsAvailable @66: Bool;
+  standStill @67: Bool;
+  vCruisekph @68: Float32;
+  resSpeed @69: Float32;
 
   struct LateralParams {
     torqueBP @0 :List(Int32);
